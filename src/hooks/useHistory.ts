@@ -75,6 +75,25 @@ export function useHistory() {
 
   const sortedDates = Object.keys(groups).sort((a, b) => b.localeCompare(a));
 
+  // Sort entries within each date group: Repetitive tasks first, then the rest.
+  for (const date of sortedDates) {
+    groups[date].sort((a, b) => {
+      const aIsRepetitive = a.type === 'task' && a.is_repetitive ? 1 : 0;
+      const bIsRepetitive = b.type === 'task' && b.is_repetitive ? 1 : 0;
+      
+      if (aIsRepetitive !== bIsRepetitive) {
+        return bIsRepetitive - aIsRepetitive; // 1 (repetitive) comes before 0
+      }
+      
+      // Secondary sort: task vs log
+      if (a.type !== b.type) {
+        return a.type === 'task' ? -1 : 1; // tasks before logs
+      }
+      
+      return 0;
+    });
+  }
+
   const deleteEntry = async (entry: any) => {
     try {
       if (entry.type === 'task') {

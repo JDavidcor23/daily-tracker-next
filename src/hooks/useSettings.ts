@@ -17,6 +17,7 @@ export function useSettings() {
   const [copied, setCopied] = useState(false);
   const [copied2, setCopied2] = useState(false);
   const [copied3, setCopied3] = useState(false);
+  const [copied4, setCopied4] = useState(false);
   const [gfitConnected, setGfitConnected] = useState<boolean | null>(null);
   const [gfitLoading, setGfitLoading] = useState(false);
 
@@ -71,7 +72,7 @@ export function useSettings() {
     toast.success('Credentials saved & connection tested!');
   };
 
-  const handleCopySQL = (schema: string, mode: 1 | 2 | 3 = 1) => {
+  const handleCopySQL = (schema: string, mode: 1 | 2 | 3 | 4 = 1) => {
     navigator.clipboard.writeText(schema).then(() => {
       if (mode === 1) {
         setCopied(true);
@@ -82,6 +83,9 @@ export function useSettings() {
       } else if (mode === 3) {
         setCopied3(true);
         setTimeout(() => setCopied3(false), COPY_FEEDBACK_DURATION_MS);
+      } else if (mode === 4) {
+        setCopied4(true);
+        setTimeout(() => setCopied4(false), COPY_FEEDBACK_DURATION_MS);
       }
     });
   };
@@ -93,6 +97,7 @@ export function useSettings() {
     copied,
     copied2,
     copied3,
+    copied4,
     gfitConnected,
     gfitLoading,
     handleConnectGoogleFit,

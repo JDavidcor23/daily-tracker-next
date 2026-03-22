@@ -18,7 +18,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { text, priority, completed, date, due_date, description } = body;
+    const { text, priority, completed, date, due_date, description, is_repetitive, frequency } = body;
     
     const { data, error } = await supabase
       .from('todos')
@@ -28,7 +28,9 @@ export async function POST(request: Request) {
         completed: !!completed,
         date: date || new Date().toISOString().split('T')[0],
         due_date,
-        description
+        description,
+        is_repetitive: !!is_repetitive,
+        frequency: frequency || 'daily'
       }])
       .select();
 

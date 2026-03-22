@@ -33,8 +33,14 @@ CREATE TABLE IF NOT EXISTS todos (
   priority text DEFAULT 'medium',
   date date DEFAULT CURRENT_DATE,
   due_date date,
-  description text
+  description text,
+  is_repetitive boolean DEFAULT false,
+  frequency text DEFAULT 'daily' -- 'daily', 'weekly', or 'monthly'
 );
+
+-- Note: Run these if you already have the table:
+-- ALTER TABLE todos ADD COLUMN IF NOT EXISTS is_repetitive boolean DEFAULT false;
+-- ALTER TABLE todos ADD COLUMN IF NOT EXISTS frequency text DEFAULT 'daily';
 
 -- Enable RLS
 ALTER TABLE daily_logs ENABLE ROW LEVEL SECURITY;
@@ -50,6 +56,12 @@ CREATE POLICY "Allow anon select todos" ON todos FOR SELECT USING (true);
 CREATE POLICY "Allow anon insert todos" ON todos FOR INSERT WITH CHECK (true);
 CREATE POLICY "Allow anon update todos" ON todos FOR UPDATE USING (true);
 CREATE POLICY "Allow anon delete todos" ON todos FOR DELETE USING (true);
+`.trim();
+
+const SQL_MIGRATION_REPETITIVE = `
+-- Run these if you already have the 'todos' table to enable repetitive tasks:
+ALTER TABLE todos ADD COLUMN IF NOT EXISTS is_repetitive boolean DEFAULT false;
+ALTER TABLE todos ADD COLUMN IF NOT EXISTS frequency text DEFAULT 'daily';
 `.trim();
 
 const SQL_APP_SETTINGS = `
@@ -155,6 +167,7 @@ export default function SettingsPage() {
     copied,
     copied2,
     copied3,
+    copied4,
     gfitConnected,
     gfitLoading,
     handleConnectGoogleFit,
@@ -307,6 +320,28 @@ export default function SettingsPage() {
           </div>
           <p className="text-[10px] text-slate-400 leading-relaxed font-medium mt-2 px-1">
             Creates <code className="bg-slate-100 dark:bg-slate-800 px-1 rounded text-slate-500">daily_logs</code> and <code className="bg-slate-100 dark:bg-slate-800 px-1 rounded text-slate-500">todos</code> tables with RLS policies.
+          </p>
+        </div>
+
+        {/* Migration for repetitive tasks */}
+        <div className="pt-4 border-t border-slate-100 dark:border-slate-800/50">
+          <p className="text-[10px] font-black uppercase tracking-widest text-brand-500 mb-2 px-1">Migration — Enable Repetitive Tasks</p>
+          <div className="relative group">
+            <div className="absolute top-3 right-3 z-10">
+              <button
+                onClick={() => handleCopySQL(SQL_MIGRATION_REPETITIVE, 4)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all shadow-lg
+                  ${copied4 ? 'bg-emerald-500 text-white' : 'bg-brand-600/80 text-white backdrop-blur-md hover:bg-brand-700'}`}
+              >
+                {copied4 ? '✅ Copied' : <><span>📋</span> Copy Update</>}
+              </button>
+            </div>
+            <div className="rounded-2xl bg-brand-950/5 text-brand-600 dark:text-brand-400 p-6 font-mono text-[10px] sm:text-xs overflow-x-auto shadow-inner ring-1 ring-brand-100 dark:ring-brand-900/20 max-h-[160px] custom-scrollbar">
+              <pre className="whitespace-pre">{SQL_MIGRATION_REPETITIVE}</pre>
+            </div>
+          </div>
+          <p className="text-[10px] text-slate-400 leading-relaxed font-medium mt-2 px-1">
+            Run this if you already started your project but want to add the new "Repetitive Tasks" feature.
           </p>
         </div>
 

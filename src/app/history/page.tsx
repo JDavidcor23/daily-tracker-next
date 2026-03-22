@@ -31,6 +31,95 @@ const FILTER_OPTIONS: { id: HistoryFilter; label: string; icon: string }[] = [
   { id: 'task', label: 'Tasks', icon: '✅' },
 ];
 
+function HistoryItem({ entry, onSelect }: { entry: any, onSelect: () => void }) {
+  return (
+    <div
+      onClick={onSelect}
+      className="card p-5 group hover:shadow-md transition-all duration-300 border-slate-100 dark:border-slate-800/50 cursor-pointer relative"
+    >
+      <div className="flex items-start gap-4">
+        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0 shadow-sm border border-slate-50 dark:border-slate-800 transition-transform group-hover:scale-110
+          ${entry.log_module === 'nutrition' ? 'bg-emerald-50 dark:bg-emerald-950/30' :
+            entry.log_module === 'training' ? 'bg-orange-50 dark:bg-orange-950/30' :
+            entry.log_module === 'study' ? 'bg-blue-50 dark:bg-blue-950/30' :
+            entry.log_module === 'task' ? 'bg-amber-50 dark:bg-amber-950/30' :
+            'bg-violet-50 dark:bg-violet-950/30'}`}
+        >
+          {entry.type === 'task' ? (entry.completed ? '✅' : '⏳') : (
+            entry.log_module === 'nutrition' ? (entry.food_meals.toLowerCase().includes('fruit') ? '🍎' : '🥗') :
+            entry.log_module === 'training' ? (entry.train_type?.toLowerCase().includes('run') ? '🏃' : '🏋️') :
+            entry.log_module === 'study' ? (entry.study_time && parseInt(entry.study_time) > STUDY_TIME_ADVANCED_THRESHOLD ? '🎓' : '📚') :
+            (entry.mood ? entry.mood : '🧠')
+          )}
+        </div>
+
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 group-hover:text-brand-500 transition-colors">
+              {entry.type === 'task' ? 'TASK' : entry.log_module}
+            </span>
+            <span className="text-[10px] font-bold text-slate-300 dark:text-slate-600 bg-slate-50 dark:bg-slate-900 px-2 py-0.5 rounded-full">
+              {entry.created_at ? formatTime(entry.created_at) : ''}
+            </span>
+          </div>
+
+          <div className="space-y-1">
+            {entry.type === 'task' && (
+              <div>
+                <p className={`text-sm font-bold leading-tight ${entry.completed ? 'text-slate-400 line-through' : 'text-slate-700 dark:text-slate-200'}`}>
+                  {entry.text}
+                </p>
+                {entry.description && <p className="text-xs text-slate-400 mt-1 line-clamp-1 italic">"{entry.description}"</p>}
+                <div className="flex flex-wrap gap-1 mt-1.5">
+                  <span className={`text-[9px] font-black uppercase px-1.5 py-0.5 rounded ${
+                    entry.priority === 'high' ? 'bg-rose-100 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400' :
+                    entry.priority === 'medium' ? 'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400' : 'bg-slate-100 text-slate-500 dark:bg-slate-800'
+                  }`}>
+                    {entry.priority}
+                  </span>
+                  {entry.is_repetitive && (
+                    <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-brand-100 text-brand-600 dark:bg-brand-950/30 dark:text-brand-400">
+                      🔁 {entry.frequency || 'Daily'}
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {entry.log_module === 'nutrition' && (
+              <p className="text-sm text-slate-700 dark:text-slate-200 font-bold leading-tight line-clamp-2">{entry.food_meals}</p>
+            )}
+            {entry.log_module === 'training' && (
+              <p className="text-sm text-slate-700 dark:text-slate-200 font-bold leading-tight">
+                {entry.trained ? `${entry.train_type} · ${entry.train_duration}m` : 'Rest Day'}
+              </p>
+            )}
+            {entry.log_module === 'study' && (
+              <p className="text-sm text-slate-700 dark:text-slate-200 font-bold leading-tight line-clamp-2">
+                {entry.study_topic} {entry.study_time ? ` · ${entry.study_time}m` : ''}
+              </p>
+            )}
+            {entry.log_module === 'mind' && (
+              <div className="items-center gap-2">
+                <span className="text-sm font-bold text-slate-700 dark:text-slate-200">
+                  {entry.mood} {entry.mood ? MOOD_LABELS[entry.mood as Mood] : ''}
+                </span>
+                <span className="text-[10px] text-slate-400 font-bold block mt-1 uppercase tracking-tighter">Stress Level {entry.stress_level}/10</span>
+              </div>
+            )}
+
+            {(entry.food_notes || entry.train_notes || entry.study_notes || entry.mind_notes) && (
+              <p className="text-xs text-slate-400 dark:text-slate-500 mt-2 italic line-clamp-1 border-l border-slate-100 dark:border-slate-800 pl-2">
+                "{entry.food_notes || entry.train_notes || entry.study_notes || entry.mind_notes}"
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function HistoryPage() {
   const { loading, search, setSearch, activeFilter, setActiveFilter, groups, sortedDates, deleteEntry, updateEntry } = useHistory();
   const [selectedEntry, setSelectedEntry] = React.useState<any | null>(null);
@@ -106,90 +195,48 @@ export default function HistoryPage() {
             <h3 className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] mb-6 pl-1 border-l-4 border-brand-500 ml-1 py-1">
               {formatDate(date)}
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {groups[date].map((entry) => (
-                <div
-                  key={entry.id}
-                  onClick={() => {
-                    setSelectedEntry(entry);
-                    setIsEditing(false);
-                  }}
-                  className="card p-5 group hover:shadow-md transition-all duration-300 border-slate-100 dark:border-slate-800/50 cursor-pointer relative"
-                >
-                  <div className="flex items-start gap-4">
-                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0 shadow-sm border border-slate-50 dark:border-slate-800 transition-transform group-hover:scale-110
-                      ${entry.log_module === 'nutrition' ? 'bg-emerald-50 dark:bg-emerald-950/30' :
-                        entry.log_module === 'training' ? 'bg-orange-50 dark:bg-orange-950/30' :
-                        entry.log_module === 'study' ? 'bg-blue-50 dark:bg-blue-950/30' :
-                        entry.log_module === 'task' ? 'bg-amber-50 dark:bg-amber-950/30' :
-                        'bg-violet-50 dark:bg-violet-950/30'}`}
-                    >
-                      {entry.type === 'task' ? (entry.completed ? '✅' : '⏳') : (
-                        entry.log_module === 'nutrition' ? (entry.food_meals.toLowerCase().includes('fruit') ? '🍎' : '🥗') :
-                        entry.log_module === 'training' ? (entry.train_type?.toLowerCase().includes('run') ? '🏃' : '🏋️') :
-                        entry.log_module === 'study' ? (entry.study_time && parseInt(entry.study_time) > STUDY_TIME_ADVANCED_THRESHOLD ? '🎓' : '📚') :
-                        (entry.mood ? entry.mood : '🧠')
-                      )}
-                    </div>
-
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 group-hover:text-brand-500 transition-colors">
-                          {entry.type === 'task' ? 'TASK' : entry.log_module}
-                        </span>
-                        <span className="text-[10px] font-bold text-slate-300 dark:text-slate-600 bg-slate-50 dark:bg-slate-900 px-2 py-0.5 rounded-full">
-                          {entry.created_at ? formatTime(entry.created_at) : ''}
-                        </span>
-                      </div>
-
-                      <div className="space-y-1">
-                        {entry.type === 'task' && (
-                          <div>
-                            <p className={`text-sm font-bold leading-tight ${entry.completed ? 'text-slate-400 line-through' : 'text-slate-700 dark:text-slate-200'}`}>
-                              {entry.text}
-                            </p>
-                            {entry.description && <p className="text-xs text-slate-400 mt-1 line-clamp-1 italic">"{entry.description}"</p>}
-                            <span className={`text-[9px] font-black uppercase mt-1.5 inline-block px-1.5 py-0.5 rounded ${
-                              entry.priority === 'high' ? 'bg-rose-100 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400' :
-                              entry.priority === 'medium' ? 'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400' : 'bg-slate-100 text-slate-500 dark:bg-slate-800'
-                            }`}>
-                              {entry.priority}
-                            </span>
-                          </div>
-                        )}
-
-                        {entry.log_module === 'nutrition' && (
-                          <p className="text-sm text-slate-700 dark:text-slate-200 font-bold leading-tight line-clamp-2">{entry.food_meals}</p>
-                        )}
-                        {entry.log_module === 'training' && (
-                          <p className="text-sm text-slate-700 dark:text-slate-200 font-bold leading-tight">
-                            {entry.trained ? `${entry.train_type} · ${entry.train_duration}m` : 'Rest Day'}
-                          </p>
-                        )}
-                        {entry.log_module === 'study' && (
-                          <p className="text-sm text-slate-700 dark:text-slate-200 font-bold leading-tight line-clamp-2">
-                            {entry.study_topic} {entry.study_time ? ` · ${entry.study_time}m` : ''}
-                          </p>
-                        )}
-                        {entry.log_module === 'mind' && (
-                          <div className="items-center gap-2">
-                            <span className="text-sm font-bold text-slate-700 dark:text-slate-200">
-                              {entry.mood} {entry.mood ? MOOD_LABELS[entry.mood as Mood] : ''}
-                            </span>
-                            <span className="text-[10px] text-slate-400 font-bold block mt-1 uppercase tracking-tighter">Stress Level {entry.stress_level}/10</span>
-                          </div>
-                        )}
-
-                        {(entry.food_notes || entry.train_notes || entry.study_notes || entry.mind_notes) && (
-                          <p className="text-xs text-slate-400 dark:text-slate-500 mt-2 italic line-clamp-1 border-l border-slate-100 dark:border-slate-800 pl-2">
-                            "{entry.food_notes || entry.train_notes || entry.study_notes || entry.mind_notes}"
-                          </p>
-                        )}
-                      </div>
-                    </div>
+            <div className="space-y-10">
+              {/* Repetitive tasks of the day */}
+              {groups[date].some(e => e.type === 'task' && e.is_repetitive) && (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-4 px-1">
+                    <h4 className="text-[10px] font-black text-brand-500 uppercase tracking-[0.25em] whitespace-nowrap">Daily Tasks</h4>
+                    <div className="h-px bg-brand-100 dark:bg-brand-900/30 w-full" />
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {groups[date]
+                      .filter(e => e.type === 'task' && e.is_repetitive)
+                      .map((entry) => (
+                        <HistoryItem 
+                          key={entry.id} 
+                          entry={entry} 
+                          onSelect={() => { setSelectedEntry(entry); setIsEditing(false); }} 
+                        />
+                      ))}
                   </div>
                 </div>
-              ))}
+              )}
+
+              {/* Other logs and tasks */}
+              {groups[date].some(e => !(e.type === 'task' && e.is_repetitive)) && (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-4 px-1">
+                    <h4 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.25em] whitespace-nowrap">Activities & Tasks</h4>
+                    <div className="h-px bg-slate-100 dark:bg-slate-800/50 w-full" />
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {groups[date]
+                      .filter(e => !(e.type === 'task' && e.is_repetitive))
+                      .map((entry) => (
+                        <HistoryItem 
+                          key={entry.id} 
+                          entry={entry} 
+                          onSelect={() => { setSelectedEntry(entry); setIsEditing(false); }} 
+                        />
+                      ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         ))}

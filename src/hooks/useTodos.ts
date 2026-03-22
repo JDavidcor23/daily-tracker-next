@@ -50,6 +50,8 @@ export function useTodos() {
   const [activeTab, setActiveTab] = useState<TodoTab>('all');
   const [rangeStart, setRangeStart] = useState(getTodayStr);
   const [rangeEnd, setRangeEnd] = useState(getTodayStr);
+  const [isRepetitive, setIsRepetitive] = useState(false);
+  const [frequency, setFrequency] = useState<'daily' | 'weekly' | 'monthly'>('daily');
 
   const today = getTodayStr();
   const tomorrow = getTomorrowStr();
@@ -83,6 +85,8 @@ export function useTodos() {
       priority,
       completed: false,
       date: getTodayStr(),
+      is_repetitive: isRepetitive,
+      frequency: isRepetitive ? frequency : undefined,
     };
 
     try {
@@ -91,6 +95,8 @@ export function useTodos() {
       setNewDescription('');
       setNewDueDate('');
       setPriority('medium');
+      setIsRepetitive(false);
+      setFrequency('daily');
       fetchTodos();
       toast.success('Task added successfully');
     } catch (error: any) {
@@ -99,6 +105,42 @@ export function useTodos() {
   };
 
   const toggleTodo = async (id: string, completed: boolean) => {
+    const todo = todos.find(t => t.id === id);
+
+    if (todo?.is_repetitive) {
+      if (!completed) {
+        // Completing a repetitive task for today
+        try {
+          await api.createTodo({
+            text: todo.text,
+            description: todo.description,
+            priority: todo.priority,
+            completed: true,
+            date: today,
+            is_repetitive: true,
+            frequency: todo.frequency,
+          });
+          fetchTodos();
+          toast.success('Repetitive task completed');
+        } catch (error: any) {
+          toast.error(`Failed to complete: ${error.message}`);
+        }
+      } else {
+        // Uncompleting - we should delete this specific completion record
+        // But only if it's the completion record (completed: true)
+        if (todo.completed) {
+          try {
+            await api.deleteTodo(id);
+            fetchTodos();
+            toast.success('Completion removed');
+          } catch (error: any) {
+            toast.error(`Failed to undo: ${error.message}`);
+          }
+        }
+      }
+      return;
+    }
+
     try {
       await api.updateTodo(id, { completed: !completed });
       fetchTodos();
@@ -111,20 +153,21 @@ export function useTodos() {
     if (!selectedTodo || !editText.trim()) return;
 
     try {
-      await api.updateTodo(selectedTodo.id, {
+      const updates: Partial<Todo> = {
         text: editText.trim(),
         description: editDescription.trim() || undefined,
         due_date: editDueDate || undefined,
         priority: editPriority,
-      });
+        is_repetitive: selectedTodo.is_repetitive,
+        frequency: selectedTodo.frequency,
+      };
+      
+      await api.updateTodo(selectedTodo.id, updates);
       fetchTodos();
       setSelectedTodo({
         ...selectedTodo,
-        text: editText.trim(),
-        description: editDescription.trim(),
-        due_date: editDueDate,
-        priority: editPriority,
-      });
+        ...updates
+      } as Todo);
       setIsEditing(false);
       toast.success('Task updated successfully');
     } catch (error: any) {
@@ -182,12 +225,40 @@ export function useTodos() {
   const getFilteredCount = (tab: TodoTab) => todos.filter(t => matchesTab(t, tab)).length;
 
   const filteredTodos = todos
-    .filter(t => matchesTab(t, activeTab))
+    .filter(t => {
+      // Special logic for today's repetitive tasks
+      if (activeTab === 'today' && t.is_repetitive) {
+        // If it's a completion for today, show it
+        if (t.completed && t.date === today) return true;
+        // If it's a master (uncompleted), show it ONLY if no completion exists for today
+        if (!t.completed) {
+          const hasCompletionToday = todos.some(other => 
+            other.is_repetitive && 
+            other.completed && 
+            other.date === today && 
+            other.text === t.text
+          );
+          return !hasCompletionToday;
+        }
+        return false; // Other repetitive records (old completions) don't show in Today
+      }
+      
+      // Standard filtering
+      return matchesTab(t, activeTab);
+    })
     .sort((a, b) => {
+      // 1. Completion status (uncompleted first)
       if (a.completed !== b.completed) return a.completed ? 1 : -1;
+      
+      // 2. Repetitive status (repetitive first)
+      if (a.is_repetitive !== b.is_repetitive) return a.is_repetitive ? -1 : 1;
+      
+      // 3. Priority
       if (PRIORITY_WEIGHTS[a.priority] !== PRIORITY_WEIGHTS[b.priority]) {
         return PRIORITY_WEIGHTS[b.priority] - PRIORITY_WEIGHTS[a.priority];
       }
+      
+      // 4. Date
       return (a.due_date || TODO_FALLBACK_SORT_DATE).localeCompare(b.due_date || TODO_FALLBACK_SORT_DATE);
     });
 
@@ -207,6 +278,8 @@ export function useTodos() {
     activeTab, setActiveTab,
     rangeStart, setRangeStart,
     rangeEnd, setRangeEnd,
+    isRepetitive, setIsRepetitive,
+    frequency, setFrequency,
     handleAdd,
     toggleTodo,
     handleUpdate,

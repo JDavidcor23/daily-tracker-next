@@ -36,6 +36,8 @@ export interface Todo {
   date: string;
   due_date?: string;
   description?: string;
+  is_repetitive: boolean;
+  frequency?: 'daily' | 'weekly' | 'monthly';
 }
 
 export type GoalLifeArea = 'profesional' | 'salud_cuerpo' | 'salud_mental' | 'financiero';

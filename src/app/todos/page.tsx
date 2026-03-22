@@ -22,6 +22,102 @@ const TABS: { id: TodoTab; label: string; icon: string; color?: string }[] = [
   { id: 'none', label: 'No Date', icon: '📝' },
 ];
 
+function TodoItem({ todo, onSelect, onToggle, onEdit, onDelete }: { 
+  todo: any, 
+  onSelect: () => void, 
+  onToggle: (id: string, completed: boolean) => void,
+  onEdit: (todo: any) => void,
+  onDelete: (id: string) => void
+}) {
+  return (
+    <div
+      onClick={onSelect}
+      className={`card p-4 flex items-center gap-4 group cursor-pointer transition-all duration-300 ${
+        todo.completed ? 'opacity-60 grayscale-[0.5]' : 'hover:shadow-lg hover:border-brand-200 dark:hover:border-brand-800/50 hover:-translate-y-0.5'
+      }`}
+    >
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          onToggle(todo.id, todo.completed);
+        }}
+        className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all flex-shrink-0 ${
+          todo.completed
+            ? 'bg-brand-500 border-brand-500 text-white shadow-inner'
+            : 'border-slate-200 dark:border-slate-700 hover:border-brand-300'
+        }`}
+      >
+        {todo.completed && (
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+          </svg>
+        )}
+      </button>
+
+      <div className="flex-1 min-w-0">
+        <p className={`text-sm font-bold text-slate-700 dark:text-slate-200 transition-all truncate ${
+          todo.completed ? 'line-through text-slate-400' : ''
+        }`}>
+          {todo.text}
+        </p>
+        <div className="flex items-center gap-3 mt-1 overflow-hidden">
+          <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full whitespace-nowrap ${PRIORITY_COLORS[todo.priority as Priority]}`}>
+            {todo.priority}
+          </span>
+          {todo.due_date && (
+            <span className="text-[9px] text-rose-500 dark:text-rose-400 font-black uppercase flex items-center gap-1 whitespace-nowrap bg-rose-50 dark:bg-rose-950/20 px-2 py-0.5 rounded-full">
+              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              {todo.due_date}
+            </span>
+          )}
+          {todo.is_repetitive && (
+            <span className="text-[9px] text-brand-500 dark:text-brand-400 font-black uppercase flex items-center gap-1 whitespace-nowrap bg-brand-50 dark:bg-brand-950/20 px-2 py-0.5 rounded-full">
+              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              🔁 {todo.frequency || 'Daily'}
+            </span>
+          )}
+          {todo.description && (
+            <span className="text-[9px] text-slate-400 dark:text-slate-500 font-bold truncate italic">
+              {todo.description.substring(0, TODO_DESCRIPTION_PREVIEW_LENGTH)}{todo.description.length > TODO_DESCRIPTION_PREVIEW_LENGTH ? '...' : ''}
+            </span>
+          )}
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onEdit(todo);
+          }}
+          className="w-10 h-10 flex items-center justify-center rounded-xl bg-brand-50 dark:bg-brand-900/10 text-brand-600 dark:text-brand-400 hover:scale-110 transition-transform flex-shrink-0"
+          title="Edit task"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+          </svg>
+        </button>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete(todo.id);
+          }}
+          className="w-10 h-10 flex items-center justify-center rounded-xl bg-rose-50 dark:bg-rose-900/10 text-rose-600 dark:text-rose-400 hover:scale-110 transition-transform flex-shrink-0"
+          title="Delete task"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function TodoPage() {
   const {
     loading,
@@ -38,6 +134,8 @@ export default function TodoPage() {
     activeTab, setActiveTab,
     rangeStart, setRangeStart,
     rangeEnd, setRangeEnd,
+    isRepetitive, setIsRepetitive,
+    frequency, setFrequency,
     handleAdd,
     toggleTodo,
     handleUpdate,
@@ -99,6 +197,27 @@ export default function TodoPage() {
                 </button>
               ))}
             </div>
+          </div>
+
+          <div className="md:col-span-2 flex items-center gap-4">
+            <div className="flex items-center gap-2 cursor-pointer group" onClick={() => setIsRepetitive(!isRepetitive)}>
+              <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${isRepetitive ? 'bg-brand-500 border-brand-500 text-white' : 'border-slate-200 dark:border-slate-700'}`}>
+                {isRepetitive && <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor font-bold"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M5 13l4 4L19 7" /></svg>}
+              </div>
+              <span className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-widest">Repetitive Task</span>
+            </div>
+            
+            {isRepetitive && (
+              <select 
+                value={frequency} 
+                onChange={(e) => setFrequency(e.target.value as any)}
+                className="bg-transparent border-0 text-xs font-black text-brand-500 uppercase tracking-widest outline-none cursor-pointer"
+              >
+                <option value="daily">Daily</option>
+                <option value="weekly">Weekly</option>
+                <option value="monthly">Monthly</option>
+              </select>
+            )}
           </div>
 
           <div className="md:col-span-2">
@@ -168,7 +287,7 @@ export default function TodoPage() {
         </div>
       )}
 
-      <div className="space-y-4">
+      <div className="space-y-10">
         {!loading && filteredTodos.length === 0 && (
           <div className="card border-dashed border-2 py-20 text-center text-slate-400 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-900/10">
             <p className="text-4xl mb-4 opacity-20">🏝️</p>
@@ -176,90 +295,45 @@ export default function TodoPage() {
           </div>
         )}
 
-        {filteredTodos.map((todo) => (
-          <div
-            key={todo.id}
-            onClick={() => {
-              setSelectedTodo(todo);
-              setIsEditing(false);
-            }}
-            className={`card p-4 flex items-center gap-4 group cursor-pointer transition-all duration-300 ${
-              todo.completed ? 'opacity-60 grayscale-[0.5]' : 'hover:shadow-lg hover:border-brand-200 dark:hover:border-brand-800/50 hover:-translate-y-0.5'
-            }`}
-          >
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                toggleTodo(todo.id, todo.completed);
-              }}
-              className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all flex-shrink-0 ${
-                todo.completed
-                  ? 'bg-brand-500 border-brand-500 text-white shadow-inner'
-                  : 'border-slate-200 dark:border-slate-700 hover:border-brand-300'
-              }`}
-            >
-              {todo.completed && (
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                </svg>
-              )}
-            </button>
-
-            <div className="flex-1 min-w-0">
-              <p className={`text-sm font-bold text-slate-700 dark:text-slate-200 transition-all truncate ${
-                todo.completed ? 'line-through text-slate-400' : ''
-              }`}>
-                {todo.text}
-              </p>
-              <div className="flex items-center gap-3 mt-1 overflow-hidden">
-                <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full whitespace-nowrap ${PRIORITY_COLORS[todo.priority]}`}>
-                  {todo.priority}
-                </span>
-                {todo.due_date && (
-                  <span className="text-[9px] text-rose-500 dark:text-rose-400 font-black uppercase flex items-center gap-1 whitespace-nowrap bg-rose-50 dark:bg-rose-950/20 px-2 py-0.5 rounded-full">
-                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                    {todo.due_date}
-                  </span>
-                )}
-                {todo.description && (
-                  <span className="text-[9px] text-slate-400 dark:text-slate-500 font-bold truncate italic">
-                    {todo.description.substring(0, TODO_DESCRIPTION_PREVIEW_LENGTH)}{todo.description.length > TODO_DESCRIPTION_PREVIEW_LENGTH ? '...' : ''}
-                  </span>
-                )}
-              </div>
+        {/* Repetitive/Daily Tasks Section */}
+        {!loading && filteredTodos.some(t => t.is_repetitive) && (
+          <div className="space-y-4">
+            <div className="flex items-center gap-4 mb-2">
+              <h3 className="text-[11px] font-black text-brand-500 dark:text-brand-400 uppercase tracking-[0.2em] whitespace-nowrap">Daily Tasks</h3>
+              <div className="h-px bg-brand-100 dark:bg-brand-900/30 w-full" />
             </div>
-
-            <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setSelectedTodo(todo);
-                  startEditing(todo);
-                }}
-                className="w-10 h-10 flex items-center justify-center rounded-xl bg-brand-50 dark:bg-brand-900/10 text-brand-600 dark:text-brand-400 hover:scale-110 transition-transform flex-shrink-0"
-                title="Edit task"
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                </svg>
-              </button>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  deleteTodo(todo.id);
-                }}
-                className="w-10 h-10 flex items-center justify-center rounded-xl bg-rose-50 dark:bg-rose-900/10 text-rose-600 dark:text-rose-400 hover:scale-110 transition-transform flex-shrink-0"
-                title="Delete task"
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-              </button>
-            </div>
+            {filteredTodos.filter(t => t.is_repetitive).map((todo) => (
+              <TodoItem 
+                key={todo.id} 
+                todo={todo} 
+                onSelect={() => { setSelectedTodo(todo); setIsEditing(false); }}
+                onToggle={toggleTodo}
+                onEdit={startEditing}
+                onDelete={deleteTodo}
+              />
+            ))}
           </div>
-        ))}
+        )}
+
+        {/* Normal Tasks Section */}
+        {!loading && filteredTodos.some(t => !t.is_repetitive) && (
+          <div className="space-y-4">
+            <div className="flex items-center gap-4 mb-2">
+              <h3 className="text-[11px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] whitespace-nowrap">Tasks</h3>
+              <div className="h-px bg-slate-100 dark:bg-slate-800/50 w-full" />
+            </div>
+            {filteredTodos.filter(t => !t.is_repetitive).map((todo) => (
+              <TodoItem 
+                key={todo.id} 
+                todo={todo} 
+                onSelect={() => { setSelectedTodo(todo); setIsEditing(false); }}
+                onToggle={toggleTodo}
+                onEdit={startEditing}
+                onDelete={deleteTodo}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
       {selectedTodo && (
@@ -318,6 +392,27 @@ export default function TodoPage() {
                         <option value="high">High</option>
                       </select>
                     </div>
+                  </div>
+
+                  <div className="flex items-center gap-4 border-t border-slate-100 dark:border-slate-800 pt-4">
+                     <div className="flex items-center gap-2 cursor-pointer group" onClick={() => setSelectedTodo(prev => prev ? {...prev, is_repetitive: !prev.is_repetitive} : null)}>
+                        <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${selectedTodo.is_repetitive ? 'bg-brand-500 border-brand-500 text-white' : 'border-slate-200 dark:border-slate-700'}`}>
+                           {selectedTodo.is_repetitive && <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor font-bold"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M5 13l4 4L19 7" /></svg>}
+                        </div>
+                        <span className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-widest">Repetitive</span>
+                     </div>
+                     
+                     {selectedTodo.is_repetitive && (
+                        <select 
+                           value={selectedTodo.frequency || 'daily'} 
+                           onChange={(e) => setSelectedTodo({...selectedTodo, frequency: e.target.value as any})}
+                           className="bg-transparent border-0 text-xs font-black text-brand-500 uppercase tracking-widest outline-none cursor-pointer"
+                        >
+                           <option value="daily">Daily</option>
+                           <option value="weekly">Weekly</option>
+                           <option value="monthly">Monthly</option>
+                        </select>
+                     )}
                   </div>
 
                   <div>
