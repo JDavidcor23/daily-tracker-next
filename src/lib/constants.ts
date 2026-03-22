@@ -45,3 +45,31 @@ export const SVG_ICON_SIZE = 18;
 
 // Locale
 export const DATE_LOCALE = 'en-US';
+
+// Goals
+export const GOAL_PROGRESS_MIN = 0;
+export const GOAL_PROGRESS_MAX = 100;
+export const GOAL_COMPLETION_SUGGEST_DURATION_MS = 5000;
+export const GOAL_TITLE_PREVIEW_LENGTH = 60;
+
+export const LIFE_AREA_LABELS: Record<string, string> = {
+  profesional: 'Professional', salud_cuerpo: 'Body Health',
+  salud_mental: 'Mental Health', financiero: 'Financial',
+};
+
+export const LIFE_AREA_META: Record<string, { bg: string; text: string; border: string; icon: string }> = {
+  profesional:  { bg: 'bg-blue-50 dark:bg-blue-950/20',       text: 'text-blue-600 dark:text-blue-400',       border: 'border-blue-100 dark:border-blue-900/30',       icon: '💼' },
+  salud_cuerpo: { bg: 'bg-emerald-50 dark:bg-emerald-950/20', text: 'text-emerald-600 dark:text-emerald-400', border: 'border-emerald-100 dark:border-emerald-900/30', icon: '💪' },
+  salud_mental: { bg: 'bg-violet-50 dark:bg-violet-950/20',   text: 'text-violet-600 dark:text-violet-400',   border: 'border-violet-100 dark:border-violet-900/30',   icon: '🧠' },
+  financiero:   { bg: 'bg-amber-50 dark:bg-amber-950/20',     text: 'text-amber-600 dark:text-amber-400',     border: 'border-amber-100 dark:border-amber-900/30',     icon: '💰' },
+};
+
+export const GOAL_STATUS_LABELS: Record<string, string> = {
+  active: 'Active', completed: 'Completed', paused: 'Paused',
+};
+
+export const GOAL_STATUS_COLORS: Record<string, string> = {
+  active:    'bg-brand-50 text-brand-600 dark:bg-brand-900/10 dark:text-brand-400',
+  completed: 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/20 dark:text-emerald-400',
+  paused:    'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400',
+};

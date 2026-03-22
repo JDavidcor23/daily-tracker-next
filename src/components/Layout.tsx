@@ -10,6 +10,7 @@ const NAV_ITEMS = [
   { to: '/', label: 'Today', icon: '📋' },
   { to: '/history', label: 'History', icon: '📅' },
   { to: '/todos', label: 'Tasks', icon: '📝' },
+  { to: '/goals', label: 'Goals', icon: '🎯' },
   { to: '/settings', label: 'Settings', icon: '⚙️' },
 ];
 

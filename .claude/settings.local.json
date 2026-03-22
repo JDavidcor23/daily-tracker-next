@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find . -name \"tailwind.config.*\" -o -name \"postcss.config.*\" 2>/dev/null | head -5)"
+    ]
+  }
+}

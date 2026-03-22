@@ -70,6 +70,64 @@ CREATE POLICY "Allow anon update app_settings" ON app_settings FOR UPDATE USING 
 CREATE POLICY "Allow anon delete app_settings" ON app_settings FOR DELETE USING (true);
 `.trim();
 
+const SQL_GOALS = `
+-- 4. Create goals table
+CREATE TABLE IF NOT EXISTS goals (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  title text NOT NULL,
+  life_area text NOT NULL CHECK (life_area IN ('profesional', 'salud_cuerpo', 'salud_mental', 'financiero')),
+  description text,
+  due_date date NOT NULL,
+  status text NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'completed', 'paused')),
+  progress integer NOT NULL DEFAULT 0 CHECK (progress >= 0 AND progress <= 100),
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+-- 5. Create milestones table
+CREATE TABLE IF NOT EXISTS milestones (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  goal_id uuid NOT NULL REFERENCES goals(id) ON DELETE CASCADE,
+  title text NOT NULL,
+  description text,
+  due_date date NOT NULL,
+  completed boolean NOT NULL DEFAULT false,
+  order_index integer NOT NULL DEFAULT 0,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+-- 6. Create goal-task links
+CREATE TABLE IF NOT EXISTS goal_task_links (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  goal_id uuid NOT NULL REFERENCES goals(id) ON DELETE CASCADE,
+  todo_id uuid NOT NULL REFERENCES todos(id) ON DELETE CASCADE,
+  CONSTRAINT goal_task_links_unique UNIQUE (goal_id, todo_id)
+);
+
+CREATE INDEX IF NOT EXISTS milestones_goal_id_idx ON milestones(goal_id);
+CREATE INDEX IF NOT EXISTS goal_task_links_goal_id_idx ON goal_task_links(goal_id);
+CREATE INDEX IF NOT EXISTS goal_task_links_todo_id_idx ON goal_task_links(todo_id);
+
+-- Enable RLS
+ALTER TABLE goals ENABLE ROW LEVEL SECURITY;
+ALTER TABLE milestones ENABLE ROW LEVEL SECURITY;
+ALTER TABLE goal_task_links ENABLE ROW LEVEL SECURITY;
+
+-- Policies
+CREATE POLICY "Allow anon select goals" ON goals FOR SELECT USING (true);
+CREATE POLICY "Allow anon insert goals" ON goals FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow anon update goals" ON goals FOR UPDATE USING (true);
+CREATE POLICY "Allow anon delete goals" ON goals FOR DELETE USING (true);
+
+CREATE POLICY "Allow anon select milestones" ON milestones FOR SELECT USING (true);
+CREATE POLICY "Allow anon insert milestones" ON milestones FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow anon update milestones" ON milestones FOR UPDATE USING (true);
+CREATE POLICY "Allow anon delete milestones" ON milestones FOR DELETE USING (true);
+
+CREATE POLICY "Allow anon select goal_task_links" ON goal_task_links FOR SELECT USING (true);
+CREATE POLICY "Allow anon insert goal_task_links" ON goal_task_links FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow anon delete goal_task_links" ON goal_task_links FOR DELETE USING (true);
+`.trim();
+
 const STATUS_COLORS: Record<string, string> = {
   connected: 'bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-950/20 dark:border-emerald-900/40 dark:text-emerald-400',
   disconnected: 'bg-rose-50 border-rose-200 text-rose-700 dark:bg-rose-950/20 dark:border-rose-900/40 dark:text-rose-400',
@@ -83,7 +141,7 @@ const STATUS_ICONS: Record<string, string> = {
 };
 
 const STATUS_MESSAGES: Record<string, string> = {
-  connected: 'Connected to Supabase — All tables (daily_logs, todos) are reachable.',
+  connected: 'Connected to Supabase — All tables (daily_logs, todos, goals) are reachable.',
   disconnected: 'Not connected. Check your credentials or run the SQL below.',
   checking: 'Checking connection…',
 };
@@ -96,6 +154,7 @@ export default function SettingsPage() {
     showKey, setShowKey,
     copied,
     copied2,
+    copied3,
     gfitConnected,
     gfitLoading,
     handleConnectGoogleFit,
@@ -182,8 +241,8 @@ export default function SettingsPage() {
 
         <div className={`flex items-center gap-4 p-4 rounded-2xl border-2 transition-all duration-500 ${
           gfitConnected === null ? 'bg-slate-50 border-slate-100 text-slate-400 dark:bg-slate-900/30 dark:border-slate-800'
-          : gfitConnected ? 'bg-emerald-50/50 border-emerald-100 text-emerald-700 dark:bg-emerald-950/20 dark:border-emerald-900/30 dark:text-emerald-400'
-          : 'bg-rose-50/50 border-rose-100 text-rose-700 dark:bg-rose-950/20 dark:border-rose-900/30 dark:text-rose-400'
+          : gfitConnected ? 'bg-emerald-50/50 border-emerald-100 text-emerald-700 dark:bg-emerald-950/20 dark:border-emerald-900/40 dark:text-emerald-400'
+          : 'bg-rose-50/50 border-rose-100 text-rose-700 dark:bg-rose-950/20 dark:border-rose-900/40 dark:text-rose-400'
         }`}>
           <div className={`w-10 h-10 rounded-full flex items-center justify-center text-xl shadow-sm ${
             gfitConnected === null ? 'bg-white dark:bg-slate-800' : gfitConnected ? 'bg-white dark:bg-emerald-900' : 'bg-white dark:bg-rose-900'
@@ -235,7 +294,7 @@ export default function SettingsPage() {
           <div className="relative group">
             <div className="absolute top-3 right-3 z-10">
               <button
-                onClick={() => handleCopySQL(SQL_SCHEMA)}
+                onClick={() => handleCopySQL(SQL_SCHEMA, 1)}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all shadow-lg
                   ${copied ? 'bg-emerald-500 text-white' : 'bg-slate-800/80 text-white backdrop-blur-md hover:bg-slate-700'}`}
               >
@@ -257,7 +316,7 @@ export default function SettingsPage() {
           <div className="relative group">
             <div className="absolute top-3 right-3 z-10">
               <button
-                onClick={() => handleCopySQL(SQL_APP_SETTINGS, true)}
+                onClick={() => handleCopySQL(SQL_APP_SETTINGS, 2)}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all shadow-lg
                   ${copied2 ? 'bg-emerald-500 text-white' : 'bg-slate-800/80 text-white backdrop-blur-md hover:bg-slate-700'}`}
               >
@@ -270,6 +329,28 @@ export default function SettingsPage() {
           </div>
           <p className="text-[10px] text-slate-400 leading-relaxed font-medium mt-2 px-1">
             Required for Google Fit — stores OAuth tokens in <code className="bg-slate-100 dark:bg-slate-800 px-1 rounded text-slate-500">app_settings</code> instead of the filesystem (needed for Vercel).
+          </p>
+        </div>
+
+        {/* Goals schema */}
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 px-1">Step 3 — Life Goals System</p>
+          <div className="relative group">
+            <div className="absolute top-3 right-3 z-10">
+              <button
+                onClick={() => handleCopySQL(SQL_GOALS, 3)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all shadow-lg
+                  ${copied3 ? 'bg-emerald-500 text-white' : 'bg-slate-800/80 text-white backdrop-blur-md hover:bg-slate-700'}`}
+              >
+                {copied3 ? '✅ Done' : <><span>📋</span> Copy</>}
+              </button>
+            </div>
+            <div className="rounded-2xl bg-slate-900 text-amber-400 p-6 font-mono text-[10px] sm:text-xs overflow-x-auto shadow-inner ring-1 ring-slate-800 max-h-[260px] custom-scrollbar">
+              <pre className="whitespace-pre">{SQL_GOALS}</pre>
+            </div>
+          </div>
+          <p className="text-[10px] text-slate-400 leading-relaxed font-medium mt-2 px-1">
+            Builds the <code className="bg-slate-100 dark:bg-slate-800 px-1 rounded text-slate-500">goals</code>, <code className="bg-slate-100 dark:bg-slate-800 px-1 rounded text-slate-500">milestones</code>, and <code className="bg-slate-100 dark:bg-slate-800 px-1 rounded text-slate-500">goal_task_links</code> tables with RLS and indexes.
           </p>
         </div>
       </div>

@@ -38,6 +38,46 @@ export interface Todo {
   description?: string;
 }
 
+export type GoalLifeArea = 'profesional' | 'salud_cuerpo' | 'salud_mental' | 'financiero';
+export type GoalStatus   = 'active' | 'completed' | 'paused';
+
+export interface Goal {
+  id: string;
+  title: string;
+  life_area: GoalLifeArea;
+  description?: string;
+  due_date: string;
+  status: GoalStatus;
+  progress: number;
+  created_at?: string;
+}
+
+export interface GoalSummary extends Goal {
+  milestones: Pick<Milestone, 'id' | 'completed'>[];
+}
+
+export interface Milestone {
+  id: string;
+  goal_id: string;
+  title: string;
+  description?: string;
+  due_date: string;
+  completed: boolean;
+  order_index: number;
+  created_at?: string;
+}
+
+export interface GoalTaskLink {
+  id: string;
+  goal_id: string;
+  todo_id: string;
+}
+
+export interface GoalWithDetails extends Goal {
+  milestones: Milestone[];
+  linkedTodos: Todo[];
+}
+
 export type SupabaseConfig = {
   url: string;
   anonKey: string;
