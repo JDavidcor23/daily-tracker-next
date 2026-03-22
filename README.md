@@ -1,36 +1,108 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Daily Tracker Next
+
+A personal health & productivity tracker built with **Next.js 16**, **Supabase**, and **Google Fit**.
+
+Track your daily nutrition, training, study, mood, fitness, and tasks — all in one place.
+
+## Tech Stack
+
+| Layer | Tech |
+|---|---|
+| Framework | Next.js 16 (App Router) |
+| Language | TypeScript |
+| Styling | Tailwind CSS 4 |
+| Database | Supabase |
+| Auth | Google OAuth (Google Fit integration) |
+| Reports | jsPDF + autotable |
+| Deployment | Vercel |
+
+## Features
+
+- **📊 Dashboard** — Today's snapshot of all modules
+- **🏋️ Training** — Log workouts, sets, reps, weight
+- **🥗 Nutrition** — Track meals and calories
+- **📚 Study** — Log study sessions with duration
+- **🧠 Mind** — Mood and mental wellness tracking
+- **💪 Fitness** — Syncs with **Google Fit** (steps, active minutes, calories)
+- **✅ Todos** — Task management with CRUD
+- **📥 Reports** — Download daily/weekly PDF reports via jsPDF
+- **⚙️ Settings** — Google Fit connection management
+
+## Project Structure
+
+```
+src/
+├── app/
+│   ├── api/              # API routes (training, nutrition, study, mind, todos, google-fit, logs, status)
+│   ├── history/          # Historical data view
+│   ├── settings/         # App settings page
+│   ├── todos/            # Todos page
+│   ├── layout.tsx        # Root layout
+│   └── page.tsx          # Main dashboard
+├── components/
+│   ├── modules/          # NutritionModule, TrainingModule, StudyModule, MindModule, FitnessModule
+│   ├── Layout.tsx
+│   └── DownloadReportButton.tsx
+├── hooks/                # useTodayPage, useFitnessData, useDownloadReport, useHistory, useTodos, useSettings
+├── lib/
+│   ├── supabase.ts       # Supabase client
+│   ├── types.ts          # TypeScript types
+│   ├── constants.ts      # App constants
+│   ├── google-fit.ts     # Google Fit helpers
+│   ├── api.ts            # API client helpers
+│   └── pdfGenerator.ts   # PDF report generation
+└── context/
+    └── SupabaseContext.tsx
+```
 
 ## Getting Started
 
-First, run the development server:
-
 ```bash
+# Install dependencies
+npm install
+
+# Run development server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+
+# Build for production
+npm run build
+
+# Lint
+npm run lint
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Environment Variables
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```env
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+GOOGLE_CLIENT_ID=your_google_client_id
+GOOGLE_CLIENT_SECRET=your_google_client_secret
+```
 
-## Learn More
+## Database
 
-To learn more about Next.js, take a look at the following resources:
+Supabase handles persistence. Make sure your Supabase project has the following tables:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- `nutrition_logs`
+- `training_logs`
+- `study_logs`
+- `mind_logs`
+- `todos`
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Google Fit Integration
 
-## Deploy on Vercel
+The app integrates with Google Fit via OAuth. Users can connect their Google account in **Settings** to sync:
+- Steps
+- Active minutes
+- Calories burned
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Deploy
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+vercel
+```
+
+Or push to GitHub and connect to Vercel for automatic CI/CD.
