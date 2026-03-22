@@ -56,6 +56,11 @@ export function generatePDFReport(period: string, data: ReportData) {
     const sleepMins = (data.fitness.sleepMinutes || 0) % MINUTES_PER_HOUR;
     const sleepStr = `${sleepHours}h ${sleepMins}m`;
 
+    doc.setFontSize(PDF_FONT_SIZE_SUBTITLE);
+    doc.setTextColor('#1e293b');
+    doc.text('Fitness & Health Overview', PDF_MARGIN_HORIZONTAL, y + 10);
+    y += 20;
+
     autoTable(doc, {
       startY: y,
       head: [['Fitness & Health Metric', 'Value']],
@@ -76,22 +81,58 @@ export function generatePDFReport(period: string, data: ReportData) {
   }
 
   if (data.todos.length > 0) {
-    autoTable(doc, {
-      startY: y,
-      head: [['Task', 'Priority', 'Status']],
-      body: data.todos.map(t => [
-        t.text,
-        t.priority.charAt(0).toUpperCase() + t.priority.slice(1),
-        t.completed ? 'Done' : 'Pending',
-      ]),
-      theme: 'grid',
-      headStyles: { fillColor: '#10b981', textColor: '#ffffff', fontStyle: 'bold' },
-      styles: { fontSize: PDF_FONT_SIZE_TABLE_DETAIL, cellPadding: 6, overflow: 'linebreak' },
-      alternateRowStyles: { fillColor: '#f8fafc' },
-      margin: { left: PDF_MARGIN_HORIZONTAL, right: PDF_MARGIN_HORIZONTAL },
+    const todosByDate: Record<string, Todo[]> = {};
+    [...data.todos]
+      .sort((a, b) => a.date.localeCompare(b.date))
+      .forEach(t => {
+        if (!todosByDate[t.date]) todosByDate[t.date] = [];
+        todosByDate[t.date].push(t);
+      });
+
+    const dates = Object.keys(todosByDate).sort();
+
+    doc.setFontSize(PDF_FONT_SIZE_SUBTITLE);
+    doc.setTextColor('#1e293b');
+    doc.text('Tasks & Progress', PDF_MARGIN_HORIZONTAL, y + 10);
+    y += 20;
+
+    dates.forEach((dateString, idx) => {
+      const formattedDate = new Date(dateString + 'T12:00:00').toLocaleDateString();
+      
+      // Section title for each day if multi-day
+      if (dates.length > 1) {
+        doc.setFontSize(PDF_FONT_SIZE_TABLE_MAIN);
+        doc.setTextColor('#475569');
+        doc.text(formattedDate, PDF_MARGIN_HORIZONTAL, y + 10);
+        y += 20;
+      }
+
+      autoTable(doc, {
+        startY: y,
+        head: [['Task', 'Description', 'Freq.', 'Priority', 'Status']],
+        body: todosByDate[dateString].map(t => [
+          t.text,
+          t.description || '-',
+          t.is_repetitive ? (t.frequency ? t.frequency.charAt(0).toUpperCase() + t.frequency.slice(1) : 'Daily') : 'Once',
+          t.priority.charAt(0).toUpperCase() + t.priority.slice(1),
+          t.completed ? 'Done' : 'Pending',
+        ]),
+        theme: 'grid',
+        headStyles: { fillColor: '#10b981', textColor: '#ffffff', fontStyle: 'bold' },
+        styles: { fontSize: PDF_FONT_SIZE_TABLE_DETAIL, cellPadding: 6, overflow: 'linebreak' },
+        columnStyles: {
+          0: { cellWidth: 120 }, // Task title
+          1: { cellWidth: 'auto' }, // Description
+          2: { cellWidth: 50 }, // Frequency
+          3: { cellWidth: 60 }, // Priority
+          4: { cellWidth: 50 }, // Status
+        },
+        alternateRowStyles: { fillColor: '#f8fafc' },
+        margin: { left: PDF_MARGIN_HORIZONTAL, right: PDF_MARGIN_HORIZONTAL },
+      });
+      // @ts-ignore
+      y = doc.lastAutoTable.finalY + (idx === dates.length - 1 ? PDF_SECTION_GAP : 10);
     });
-    // @ts-ignore
-    y = doc.lastAutoTable.finalY + PDF_SECTION_GAP;
   } else {
     doc.setFontSize(PDF_FONT_SIZE_TABLE_MAIN);
     doc.setTextColor('#94a3b8');
@@ -100,9 +141,14 @@ export function generatePDFReport(period: string, data: ReportData) {
   }
 
   if (data.logs.length > 0) {
+    doc.setFontSize(PDF_FONT_SIZE_SUBTITLE);
+    doc.setTextColor('#1e293b');
+    doc.text('Activity Logs & Daily Details', PDF_MARGIN_HORIZONTAL, y + 10);
+    y += 20;
+
     autoTable(doc, {
       startY: y,
-      head: [['Date', 'Category', 'Details', 'Notes']],
+      head: [['Date', 'Time', 'Category', 'Details', 'Notes']],
       body: data.logs.map(log => {
         let details = '';
         let notes = '';
@@ -123,8 +169,14 @@ export function generatePDFReport(period: string, data: ReportData) {
           details = `Mood: ${moodText} | Stress: ${log.stress_level}/10`;
           notes = log.mind_notes || '';
         }
+
+        const timeStr = log.created_at 
+          ? new Date(log.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) 
+          : '-';
+
         return [
           new Date(log.date + 'T12:00:00').toLocaleDateString(),
+          timeStr,
           log.log_module.charAt(0).toUpperCase() + log.log_module.slice(1),
           details,
           notes,
@@ -134,10 +186,11 @@ export function generatePDFReport(period: string, data: ReportData) {
       headStyles: { fillColor: '#f59e0b', textColor: '#ffffff', fontStyle: 'bold' },
       styles: { fontSize: PDF_FONT_SIZE_TABLE_DETAIL, cellPadding: 6, overflow: 'linebreak' },
       columnStyles: {
-        0: { cellWidth: PDF_COL_DATE_WIDTH },
-        1: { cellWidth: PDF_COL_CATEGORY_WIDTH },
-        2: { cellWidth: PDF_COL_DETAILS_WIDTH },
-        3: { cellWidth: 'auto' },
+        0: { cellWidth: 65 }, // Date
+        1: { cellWidth: 50 }, // Time
+        2: { cellWidth: 65 }, // Category
+        3: { cellWidth: 140 }, // Details
+        4: { cellWidth: 'auto' }, // Notes
       },
       margin: { left: PDF_MARGIN_HORIZONTAL, right: PDF_MARGIN_HORIZONTAL },
     });
