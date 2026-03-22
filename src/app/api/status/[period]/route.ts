@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import supabase from '@/lib/supabase';
 
 const getDateRange = (period: string) => {
   const now = new Date();
@@ -24,9 +24,9 @@ const getDateRange = (period: string) => {
 
 export async function GET(
   request: Request,
-  { params }: { params: { period: string } }
+  { params }: { params: Promise<{ period: string }> }
 ) {
-  const { period } = params;
+  const { period } = await params;
   const { searchParams } = new URL(request.url);
   const module = searchParams.get('module');
 

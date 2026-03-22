@@ -58,3 +58,5 @@ export function getSupabase(): SupabaseClient | null {
 export function resetSupabaseClient(): void {
   _client = null;
 }
+
+export default supabase;

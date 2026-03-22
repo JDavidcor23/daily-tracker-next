@@ -1,4 +1,5 @@
-import { google } from 'googleapis';
+import * as googleapis from 'googleapis';
+const { google } = googleapis;
 import fs from 'fs';
 import path from 'path';
 
