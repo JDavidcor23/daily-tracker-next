@@ -16,11 +16,11 @@ export async function GET(request: Request) {
 
   try {
     const { tokens } = await oauth2Client.getToken(code);
-    saveTokens(tokens);
+    await saveTokens(tokens);
     
-    // Redirect to frontend settings page
-    const frontendUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:3000';
-    return NextResponse.redirect(`${frontendUrl}/settings?google_fit=connected`);
+    // Redirect back to settings page
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    return NextResponse.redirect(`${appUrl}/settings?google_fit=connected`);
   } catch (err: any) {
     return NextResponse.json({ success: false, error: 'Token exchange failed: ' + err.message }, { status: 500 });
   }

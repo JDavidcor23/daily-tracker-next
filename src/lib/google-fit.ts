@@ -1,12 +1,13 @@
 import * as googleapis from 'googleapis';
 const { google } = googleapis;
-import fs from 'fs';
-import path from 'path';
+import { supabase } from '@/lib/supabase';
 
 const GOOGLE_FIT_CLIENT_ID = process.env.GOOGLE_FIT_CLIENT_ID;
 const GOOGLE_FIT_CLIENT_SECRET = process.env.GOOGLE_FIT_CLIENT_SECRET;
 const GOOGLE_FIT_REDIRECT_URI = process.env.GOOGLE_FIT_REDIRECT_URI;
-const TOKENS_PATH = path.join(process.cwd(), 'google_fit_tokens.json');
+
+// Key used to look up the token row in app_settings
+const TOKEN_KEY = 'google_fit_tokens';
 
 export const GOOGLE_FIT_SCOPES = [
   'https://www.googleapis.com/auth/fitness.activity.read',
@@ -26,21 +27,33 @@ export function getGoogleFitOAuth2Client() {
   );
 }
 
-export function loadTokens() {
+/** Load tokens from Supabase app_settings table */
+export async function loadTokens(): Promise<any | null> {
   try {
-    if (fs.existsSync(TOKENS_PATH)) {
-      return JSON.parse(fs.readFileSync(TOKENS_PATH, 'utf8'));
-    }
-  } catch { /* ignore */ }
-  return null;
-}
+    const { data, error } = await supabase
+      .from('app_settings')
+      .select('value')
+      .eq('key', TOKEN_KEY)
+      .single();
 
-export function saveTokens(tokens: any) {
-  fs.writeFileSync(TOKENS_PATH, JSON.stringify(tokens, null, 2), 'utf8');
-}
-
-export function deleteTokens() {
-  if (fs.existsSync(TOKENS_PATH)) {
-    fs.unlinkSync(TOKENS_PATH);
+    if (error || !data) return null;
+    return data.value;
+  } catch {
+    return null;
   }
+}
+
+/** Save tokens to Supabase app_settings table (upsert) */
+export async function saveTokens(tokens: any): Promise<void> {
+  await supabase
+    .from('app_settings')
+    .upsert({ key: TOKEN_KEY, value: tokens }, { onConflict: 'key' });
+}
+
+/** Delete tokens from Supabase app_settings table */
+export async function deleteTokens(): Promise<void> {
+  await supabase
+    .from('app_settings')
+    .delete()
+    .eq('key', TOKEN_KEY);
 }

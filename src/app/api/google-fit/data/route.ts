@@ -9,7 +9,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ success: false, error: 'Google Fit not configured' }, { status: 503 });
   }
 
-  const tokens = loadTokens();
+  const tokens = await loadTokens();
   if (!tokens) {
     return NextResponse.json({ success: false, error: 'Google Fit not connected' }, { status: 401 });
   }

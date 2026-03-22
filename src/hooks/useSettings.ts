@@ -15,6 +15,7 @@ export function useSettings() {
   const [anonKey, setAnonKey] = useState(creds.anonKey);
   const [showKey, setShowKey] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [copied2, setCopied2] = useState(false);
   const [gfitConnected, setGfitConnected] = useState<boolean | null>(null);
   const [gfitLoading, setGfitLoading] = useState(false);
 
@@ -69,10 +70,15 @@ export function useSettings() {
     toast.success('Credentials saved & connection tested!');
   };
 
-  const handleCopySQL = (schema: string) => {
+  const handleCopySQL = (schema: string, second = false) => {
     navigator.clipboard.writeText(schema).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), COPY_FEEDBACK_DURATION_MS);
+      if (second) {
+        setCopied2(true);
+        setTimeout(() => setCopied2(false), COPY_FEEDBACK_DURATION_MS);
+      } else {
+        setCopied(true);
+        setTimeout(() => setCopied(false), COPY_FEEDBACK_DURATION_MS);
+      }
     });
   };
 
@@ -81,6 +87,7 @@ export function useSettings() {
     anonKey, setAnonKey,
     showKey, setShowKey,
     copied,
+    copied2,
     gfitConnected,
     gfitLoading,
     handleConnectGoogleFit,

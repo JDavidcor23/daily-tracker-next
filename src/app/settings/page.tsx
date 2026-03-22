@@ -52,6 +52,24 @@ CREATE POLICY "Allow anon update todos" ON todos FOR UPDATE USING (true);
 CREATE POLICY "Allow anon delete todos" ON todos FOR DELETE USING (true);
 `.trim();
 
+const SQL_APP_SETTINGS = `
+-- 3. Create app_settings table (required for Google Fit token storage)
+CREATE TABLE IF NOT EXISTS app_settings (
+  key text PRIMARY KEY,
+  value jsonb NOT NULL,
+  updated_at timestamp with time zone DEFAULT now()
+);
+
+-- Enable RLS
+ALTER TABLE app_settings ENABLE ROW LEVEL SECURITY;
+
+-- Policies
+CREATE POLICY "Allow anon select app_settings" ON app_settings FOR SELECT USING (true);
+CREATE POLICY "Allow anon insert app_settings" ON app_settings FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow anon update app_settings" ON app_settings FOR UPDATE USING (true);
+CREATE POLICY "Allow anon delete app_settings" ON app_settings FOR DELETE USING (true);
+`.trim();
+
 const STATUS_COLORS: Record<string, string> = {
   connected: 'bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-950/20 dark:border-emerald-900/40 dark:text-emerald-400',
   disconnected: 'bg-rose-50 border-rose-200 text-rose-700 dark:bg-rose-950/20 dark:border-rose-900/40 dark:text-rose-400',
@@ -77,6 +95,7 @@ export default function SettingsPage() {
     anonKey, setAnonKey,
     showKey, setShowKey,
     copied,
+    copied2,
     gfitConnected,
     gfitLoading,
     handleConnectGoogleFit,
@@ -210,23 +229,49 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        <div className="relative group">
-          <div className="absolute top-3 right-3 z-10">
-            <button
-              onClick={() => handleCopySQL(SQL_SCHEMA)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all shadow-lg
-                ${copied ? 'bg-emerald-500 text-white' : 'bg-slate-800/80 text-white backdrop-blur-md hover:bg-slate-700'}`}
-            >
-              {copied ? '✅ Done' : <><span>📋</span> Copy SQL</>}
-            </button>
+        {/* Main schema */}
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 px-1">Step 1 — Core Tables</p>
+          <div className="relative group">
+            <div className="absolute top-3 right-3 z-10">
+              <button
+                onClick={() => handleCopySQL(SQL_SCHEMA)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all shadow-lg
+                  ${copied ? 'bg-emerald-500 text-white' : 'bg-slate-800/80 text-white backdrop-blur-md hover:bg-slate-700'}`}
+              >
+                {copied ? '✅ Done' : <><span>📋</span> Copy</>}
+              </button>
+            </div>
+            <div className="rounded-2xl bg-slate-900 text-blue-400 p-6 font-mono text-[10px] sm:text-xs overflow-x-auto shadow-inner ring-1 ring-slate-800 max-h-[260px] custom-scrollbar">
+              <pre className="whitespace-pre">{SQL_SCHEMA}</pre>
+            </div>
           </div>
-          <div className="rounded-2xl bg-slate-900 text-blue-400 p-6 font-mono text-[10px] sm:text-xs overflow-x-auto shadow-inner ring-1 ring-slate-800 max-h-[300px] custom-scrollbar">
-            <pre className="whitespace-pre">{SQL_SCHEMA}</pre>
-          </div>
+          <p className="text-[10px] text-slate-400 leading-relaxed font-medium mt-2 px-1">
+            Creates <code className="bg-slate-100 dark:bg-slate-800 px-1 rounded text-slate-500">daily_logs</code> and <code className="bg-slate-100 dark:bg-slate-800 px-1 rounded text-slate-500">todos</code> tables with RLS policies.
+          </p>
         </div>
-        <p className="text-[10px] text-slate-400 leading-relaxed font-medium">
-          Note: This schema ensures <code className="bg-slate-100 dark:bg-slate-800 px-1 rounded text-slate-500">daily_logs</code> and <code className="bg-slate-100 dark:bg-slate-800 px-1 rounded text-slate-500">todos</code> tables exist with proper RLS policies.
-        </p>
+
+        {/* Google Fit tokens schema */}
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 px-1">Step 2 — Google Fit Token Storage</p>
+          <div className="relative group">
+            <div className="absolute top-3 right-3 z-10">
+              <button
+                onClick={() => handleCopySQL(SQL_APP_SETTINGS, true)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all shadow-lg
+                  ${copied2 ? 'bg-emerald-500 text-white' : 'bg-slate-800/80 text-white backdrop-blur-md hover:bg-slate-700'}`}
+              >
+                {copied2 ? '✅ Done' : <><span>📋</span> Copy</>}
+              </button>
+            </div>
+            <div className="rounded-2xl bg-slate-900 text-emerald-400 p-6 font-mono text-[10px] sm:text-xs overflow-x-auto shadow-inner ring-1 ring-slate-800 max-h-[260px] custom-scrollbar">
+              <pre className="whitespace-pre">{SQL_APP_SETTINGS}</pre>
+            </div>
+          </div>
+          <p className="text-[10px] text-slate-400 leading-relaxed font-medium mt-2 px-1">
+            Required for Google Fit — stores OAuth tokens in <code className="bg-slate-100 dark:bg-slate-800 px-1 rounded text-slate-500">app_settings</code> instead of the filesystem (needed for Vercel).
+          </p>
+        </div>
       </div>
 
       <div className="pt-10 pb-6 text-center space-y-3 opacity-50 hover:opacity-100 transition-opacity">

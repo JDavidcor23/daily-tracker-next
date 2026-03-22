@@ -7,6 +7,6 @@ export async function GET() {
     return NextResponse.json({ success: true, data: { connected: false, configured: false } });
   }
 
-  const tokens = loadTokens();
+  const tokens = await loadTokens();
   return NextResponse.json({ success: true, data: { connected: !!tokens, configured: true } });
 }
