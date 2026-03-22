@@ -2,25 +2,9 @@
 
 import React from 'react';
 import { useTodayPage } from '@/hooks/useTodayPage';
-import { MOOD_LABELS, Mood } from '@/lib/types';
-import { DATE_LOCALE, STUDY_TIME_ADVANCED_THRESHOLD } from '@/lib/constants';
 import { NutritionModule, TrainingModule, StudyModule, MindModule, FitnessModule } from '@/components/modules';
-
-function formatDisplayDate(iso: string): string {
-  return new Date(iso + 'T12:00:00').toLocaleDateString(DATE_LOCALE, {
-    weekday: 'long',
-    month: 'long',
-    day: 'numeric',
-    year: 'numeric',
-  });
-}
-
-function formatTime(iso: string): string {
-  return new Date(iso).toLocaleTimeString(DATE_LOCALE, {
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
+import { Timeline, EntryDetailModal } from '@/components/timeline';
+import { formatDisplayDate } from '@/lib/utils';
 
 export default function TodayPage() {
   const { today, timeline, loading, handleLog, updateLog, deleteLog } = useTodayPage();
@@ -59,7 +43,7 @@ export default function TodayPage() {
 
   return (
     <div className="px-4 py-8 space-y-10 animate-fade-in font-sans">
-      <div className="card bg-gradient-to-r from-brand-600 to-violet-600 text-white border-0 shadow-lg p-6 sm:p-8 relative overflow-hidden group">
+      <div className="card bg-gradient-to-r from-brand-600 to-violet-600 text-white border-0 shadow-lg p-6 sm:p-8 relative overflow-hidden group rounded-2xl">
         <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-3xl group-hover:bg-white/20 transition-all duration-700" />
         <p className="text-[10px] font-black uppercase tracking-widest opacity-80 mb-2 drop-shadow-sm">
           Timeline Mode
@@ -75,427 +59,34 @@ export default function TodayPage() {
         <FitnessModule />
       </div>
 
-      <section className="mt-8 mb-12 max-w-2xl mx-auto w-full">
-        <div className="flex items-center gap-3 mb-8">
-          <div className="w-12 h-12 rounded-2xl bg-white dark:bg-slate-900 flex items-center justify-center text-2xl shadow-sm border border-slate-50 dark:border-slate-800">
-            🕒
-          </div>
-          <div>
-            <h2 className="font-bold text-slate-800 dark:text-slate-100 text-lg">Today's Timeline</h2>
-            <p className="text-xs text-slate-400 font-medium uppercase tracking-tighter">Your chronological activity log</p>
-          </div>
-        </div>
+      <Timeline 
+        timeline={timeline}
+        onEntryClick={(entry) => {
+          setSelectedEntry(entry);
+          setIsEditing(false);
+        }}
+        onEntryEdit={(entry) => {
+          startEditing(entry);
+          setSelectedEntry(entry);
+        }}
+        onEntryDelete={handleDelete}
+      />
 
-        {timeline.length === 0 ? (
-          <div className="card border-dashed border-2 py-16 text-center text-slate-400 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/30">
-            <p className="text-4xl mb-3 opacity-20">📝</p>
-            <p className="font-medium">No activities logged yet for today.</p>
-            <p className="text-[10px] mt-1 uppercase tracking-widest opacity-60">Log something above to get started</p>
-          </div>
-        ) : (
-          <div className="relative space-y-6 before:absolute before:left-5 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-100 dark:before:bg-slate-800">
-            {timeline.map((entry) => (
-              <div key={entry.id} className="relative pl-12 sm:pl-16 group">
-                <span className={`absolute left-3 top-3 w-4 h-4 rounded-full border-4 border-white dark:border-slate-950 shadow-md transition-all duration-300 group-hover:scale-125
-                  ${entry.log_module === 'nutrition' ? 'bg-emerald-400' :
-                    entry.log_module === 'training' ? 'bg-orange-400' :
-                    entry.log_module === 'study' ? 'bg-blue-400' :
-                    'bg-violet-400'}`}
-                />
-
-                <div 
-                  onClick={() => {
-                    setSelectedEntry(entry);
-                    setIsEditing(false);
-                  }}
-                  className="card cursor-pointer hover:shadow-md dark:hover:border-slate-700 transition-all duration-300 transform hover:-translate-x-1 group-hover:border-slate-200 dark:group-hover:border-slate-700/50 relative overflow-hidden"
-                >
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 group-hover:text-brand-500 transition-colors">
-                      {entry.log_module}
-                    </span>
-                    <div className="flex items-center gap-3">
-                      <span className="text-[10px] font-bold text-slate-400 bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-full group-hover:bg-slate-200 dark:group-hover:bg-slate-700 transition-colors">
-                        {entry.created_at ? formatTime(entry.created_at) : ''}
-                      </span>
-                    </div>
-                  </div>
-
-                  {entry.log_module === 'nutrition' && (
-                    <div className="animate-fade-in pr-12">
-                      <p className="font-bold text-slate-700 dark:text-slate-200 text-sm leading-relaxed">{entry.food_meals}</p>
-                      {entry.food_notes && <p className="text-xs text-slate-500 mt-2 italic border-l-2 border-emerald-100 dark:border-emerald-950 pl-3">"{entry.food_notes}"</p>}
-                    </div>
-                  )}
-
-                  {entry.log_module === 'training' && (
-                    <div className="animate-fade-in pr-12">
-                      <p className="font-bold text-slate-700 dark:text-slate-200 text-sm">
-                        {entry.trained ? `🏋️ ${entry.train_type}` : '🛋️ Rest Day'}
-                        {entry.train_duration && <span className="text-brand-500 ml-2">· {entry.train_duration}m</span>}
-                      </p>
-                      {entry.train_notes && <p className="text-xs text-slate-500 mt-2 italic border-l-2 border-orange-100 dark:border-orange-950 pl-2">{entry.train_notes}</p>}
-                    </div>
-                  )}
-
-                  {entry.log_module === 'study' && (
-                    <div className="animate-fade-in pr-12">
-                      <p className="font-bold text-slate-700 dark:text-slate-200 text-sm">📚 {entry.study_topic}</p>
-                      {entry.study_time && <p className="text-[10px] text-brand-500 font-bold mt-0.5 uppercase tracking-wide">⏱️ {entry.study_time} mins</p>}
-                      {entry.study_notes && <p className="text-xs text-slate-500 mt-2 italic border-l-2 border-blue-100 dark:border-blue-950 pl-2">{entry.study_notes}</p>}
-                    </div>
-                  )}
-
-                  {entry.log_module === 'mind' && (
-                    <div className="animate-fade-in pr-12">
-                      <div className="flex items-center gap-3">
-                        <span className="text-3xl drop-shadow-sm">{entry.mood}</span>
-                        <div>
-                          <p className="font-bold text-slate-700 dark:text-slate-200 text-sm leading-none">
-                            {entry.mood ? MOOD_LABELS[entry.mood as Mood] : 'Mood Log'}
-                          </p>
-                          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-1">
-                            Stress Level: {entry.stress_level}/10
-                          </p>
-                        </div>
-                      </div>
-                      {entry.mind_notes && <p className="text-xs text-slate-500 mt-3 italic bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-100 dark:border-slate-800">"{entry.mind_notes}"</p>}
-                    </div>
-                  )}
-
-                  {/* Quick Action Overlay */}
-                  <div className="absolute right-0 top-0 bottom-0 flex flex-col justify-center gap-2 px-3 bg-gradient-to-l from-white dark:from-slate-900 to-transparent translate-x-full group-hover:translate-x-0 transition-transform duration-200">
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); startEditing(entry); setSelectedEntry(entry); }}
-                      className="p-2 bg-brand-50 dark:bg-brand-900/30 text-brand-600 dark:text-brand-400 rounded-lg hover:scale-110 shadow-sm"
-                    >
-                      ✏️
-                    </button>
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); handleDelete(entry); }}
-                      className="p-2 bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 rounded-lg hover:scale-110 shadow-sm"
-                    >
-                      🗑️
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
-
-      {/* Edit Modal */}
       {selectedEntry && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in"
-          onClick={() => {
+        <EntryDetailModal
+          selectedEntry={selectedEntry}
+          isEditing={isEditing}
+          editData={editData}
+          onEdit={startEditing}
+          onSave={handleSave}
+          onDelete={handleDelete}
+          onClose={() => {
             setSelectedEntry(null);
             setIsEditing(false);
           }}
-        >
-          <div className="card w-full max-w-lg overflow-hidden shadow-2xl relative border-0 dark:border dark:border-slate-800 animate-fade-in" onClick={(e) => e.stopPropagation()}>
-            <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
-              {!isEditing && (
-                <>
-                  <button
-                    onClick={() => startEditing(selectedEntry)}
-                    className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 hover:text-brand-500 transition-colors"
-                    title="Edit"
-                  >
-                    ✏️
-                  </button>
-                  <button
-                    onClick={() => handleDelete(selectedEntry)}
-                    className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 hover:text-rose-500 transition-colors"
-                    title="Delete"
-                  >
-                    🗑️
-                  </button>
-                </>
-              )}
-              <button
-                onClick={() => {
-                  setSelectedEntry(null);
-                  setIsEditing(false);
-                }}
-                className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
-                title="Close"
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-
-            <div className={`h-2 absolute top-0 left-0 right-0 ${
-              selectedEntry.log_module === 'nutrition' ? 'bg-emerald-500' :
-              selectedEntry.log_module === 'training' ? 'bg-orange-500' :
-              selectedEntry.log_module === 'study' ? 'bg-blue-500' :
-              'bg-violet-500'}`} />
-
-            <div className="pt-8 px-6 pb-8 max-h-[90vh] overflow-y-auto custom-scrollbar">
-              <div className="mb-6">
-                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 block mb-1">
-                  {isEditing ? 'EDITING ' : ''}{selectedEntry.log_module}
-                </span>
-                <h2 className="text-2xl font-black text-slate-800 dark:text-slate-100 flex items-center gap-3">
-                  <span className="text-4xl drop-shadow-sm">
-                    {selectedEntry.log_module === 'nutrition' ? (selectedEntry.food_meals.toLowerCase().includes('fruit') ? '🍎' : '🥗') :
-                      selectedEntry.log_module === 'training' ? (selectedEntry.train_type?.toLowerCase().includes('run') ? '🏃' : '🏋️') :
-                      selectedEntry.log_module === 'study' ? (selectedEntry.study_time && parseInt(selectedEntry.study_time) > STUDY_TIME_ADVANCED_THRESHOLD ? '🎓' : '📚') :
-                      (selectedEntry.mood ? selectedEntry.mood : '🧠')}
-                  </span>
-                  {selectedEntry.log_module === 'nutrition' ? 'Nutrition' :
-                    selectedEntry.log_module === 'training' ? 'Training' :
-                    selectedEntry.log_module === 'study' ? 'Study session' :
-                    'Mind & Mood'
-                  }
-                </h2>
-              </div>
-
-              {!isEditing ? (
-                <div className="space-y-6">
-                  {selectedEntry.log_module === 'nutrition' && (
-                    <div>
-                      <h3 className="text-[10px] font-black uppercase text-slate-400 mb-2">Meals Logged</h3>
-                      <div className="bg-emerald-50/30 dark:bg-emerald-950/20 rounded-2xl p-4 text-sm text-slate-700 dark:text-slate-200 leading-relaxed min-h-[100px] border border-emerald-100/50 dark:border-emerald-900/30 font-bold whitespace-pre-wrap">
-                        {selectedEntry.food_meals}
-                      </div>
-                      {selectedEntry.food_notes && (
-                        <div className="mt-6">
-                          <h3 className="text-[10px] font-black uppercase text-slate-400 mb-2">Internal Notes</h3>
-                          <div className="bg-slate-50 dark:bg-slate-800/30 rounded-2xl p-4 text-sm text-slate-500 dark:text-slate-400 italic border border-slate-100 dark:border-slate-800">
-                            "{selectedEntry.food_notes}"
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {selectedEntry.log_module === 'training' && (
-                    <div>
-                      <div className="grid grid-cols-2 gap-4 mb-4">
-                        <div className="bg-orange-50/30 dark:bg-orange-950/20 p-4 rounded-2xl border border-orange-100 dark:border-orange-900/30">
-                          <h3 className="text-[10px] font-black uppercase text-slate-400 mb-1">Workout Type</h3>
-                          <p className="text-lg font-black text-slate-800 dark:text-slate-100">{selectedEntry.train_type || 'Rest Day'}</p>
-                        </div>
-                        {selectedEntry.train_duration && (
-                          <div className="bg-brand-50/30 dark:bg-brand-950/20 p-4 rounded-2xl border border-brand-100 dark:border-brand-900/30">
-                            <h3 className="text-[10px] font-black uppercase text-slate-400 mb-1">Duration</h3>
-                            <p className="text-lg font-black text-brand-600 dark:text-brand-400">{selectedEntry.train_duration}m</p>
-                          </div>
-                        )}
-                      </div>
-                      {selectedEntry.train_notes && (
-                        <div>
-                          <h3 className="text-[10px] font-black uppercase text-slate-400 mb-2">Session Notes</h3>
-                          <div className="bg-slate-50 dark:bg-slate-800/30 rounded-2xl p-4 text-sm text-slate-700 dark:text-slate-200 leading-relaxed border border-slate-100 dark:border-slate-800 font-medium whitespace-pre-wrap">
-                            {selectedEntry.train_notes}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {selectedEntry.log_module === 'study' && (
-                    <div>
-                      <div className="bg-blue-50/30 dark:bg-blue-950/20 p-5 rounded-2xl border border-blue-100 dark:border-blue-900/30 mb-4">
-                        <h3 className="text-[10px] font-black uppercase text-slate-400 mb-1">Study Topic</h3>
-                        <p className="text-xl font-black text-slate-800 dark:text-slate-100 tracking-tight">{selectedEntry.study_topic}</p>
-                        {selectedEntry.study_time && (
-                          <div className="mt-3 flex items-center gap-2 text-brand-500 font-black">
-                            <span className="text-xl">⏱️</span> {selectedEntry.study_time} minutes spent
-                          </div>
-                        )}
-                      </div>
-                      {selectedEntry.study_notes && (
-                        <div>
-                          <h3 className="text-[10px] font-black uppercase text-slate-400 mb-2">Learned Today</h3>
-                          <div className="bg-slate-50 dark:bg-slate-800/30 rounded-2xl p-4 text-sm text-slate-700 dark:text-slate-200 leading-relaxed border border-slate-100 dark:border-slate-800 font-medium whitespace-pre-wrap">
-                            {selectedEntry.study_notes}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {selectedEntry.log_module === 'mind' && (
-                    <div>
-                      <div className="grid grid-cols-2 gap-4 mb-4">
-                        <div className="bg-violet-50/30 dark:bg-violet-950/20 p-4 rounded-2xl border border-violet-100 dark:border-violet-900/30">
-                          <h3 className="text-[10px] font-black uppercase text-slate-400 mb-1">Mood Status</h3>
-                          <p className="text-xl font-black text-slate-800 dark:text-slate-100">{selectedEntry.mood} {selectedEntry.mood ? MOOD_LABELS[selectedEntry.mood as Mood] : ''}</p>
-                        </div>
-                        <div className="bg-brand-50/30 dark:bg-brand-950/20 p-4 rounded-2xl border border-brand-100 dark:border-brand-900/30">
-                          <h3 className="text-[10px] font-black uppercase text-slate-400 mb-1">Stress Factor</h3>
-                          <p className="text-xl font-black text-slate-800 dark:text-slate-100">{selectedEntry.stress_level}/10</p>
-                        </div>
-                      </div>
-                      {selectedEntry.mind_notes && (
-                        <div>
-                          <h3 className="text-[10px] font-black uppercase text-slate-400 mb-2">Thoughts Logged</h3>
-                          <div className="bg-slate-50 dark:bg-slate-800/30 rounded-2xl p-4 text-sm text-slate-700 dark:text-slate-200 leading-relaxed border border-slate-100 dark:border-slate-800 font-medium whitespace-pre-wrap">
-                            {selectedEntry.mind_notes}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  <div className="border-t border-slate-100 dark:border-slate-800 pt-6 mt-6 flex justify-between items-center text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
-                    <span className="flex items-center gap-1.5"><span className="text-sm">🗓️</span> Today</span>
-                    <span className="flex items-center gap-1.5"><span className="text-sm">🕘</span> {selectedEntry.created_at ? formatTime(selectedEntry.created_at) : ''}</span>
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-5 animate-fade-in">
-                  {selectedEntry.log_module === 'nutrition' && (
-                    <>
-                      <div>
-                        <label className="label">Meals</label>
-                        <textarea
-                          className="input-field min-h-[100px]"
-                          value={editData.food_meals}
-                          onChange={e => setEditData({...editData, food_meals: e.target.value})}
-                        />
-                      </div>
-                      <div>
-                        <label className="label">Notes</label>
-                        <input
-                          type="text"
-                          className="input-field"
-                          value={editData.food_notes || ''}
-                          onChange={e => setEditData({...editData, food_notes: e.target.value})}
-                        />
-                      </div>
-                    </>
-                  )}
-
-                  {selectedEntry.log_module === 'training' && (
-                    <>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label className="label">Workout Type</label>
-                          <input
-                            type="text"
-                            className="input-field"
-                            value={editData.train_type || ''}
-                            onChange={e => setEditData({...editData, train_type: e.target.value})}
-                          />
-                        </div>
-                        <div>
-                          <label className="label">Duration (min)</label>
-                          <input
-                            type="number"
-                            className="input-field"
-                            value={editData.train_duration || ''}
-                            onChange={e => setEditData({...editData, train_duration: e.target.value})}
-                          />
-                        </div>
-                      </div>
-                      <div>
-                        <label className="label">Notes</label>
-                        <textarea
-                          className="input-field min-h-[80px]"
-                          value={editData.train_notes || ''}
-                          onChange={e => setEditData({...editData, train_notes: e.target.value})}
-                        />
-                      </div>
-                    </>
-                  )}
-
-                  {selectedEntry.log_module === 'study' && (
-                    <>
-                      <div>
-                        <label className="label">Topic</label>
-                        <input
-                          type="text"
-                          className="input-field"
-                          value={editData.study_topic}
-                          onChange={e => setEditData({...editData, study_topic: e.target.value})}
-                        />
-                      </div>
-                      <div>
-                        <label className="label">Duration (min)</label>
-                        <input
-                          type="number"
-                          className="input-field"
-                          value={editData.study_time || ''}
-                          onChange={e => setEditData({...editData, study_time: e.target.value})}
-                        />
-                      </div>
-                      <div>
-                        <label className="label">Notes</label>
-                        <textarea
-                          className="input-field min-h-[80px]"
-                          value={editData.study_notes || ''}
-                          onChange={e => setEditData({...editData, study_notes: e.target.value})}
-                        />
-                      </div>
-                    </>
-                  )}
-
-                  {selectedEntry.log_module === 'mind' && (
-                    <>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label className="label">Mood</label>
-                          <select
-                            className="input-field"
-                            value={editData.mood}
-                            onChange={e => setEditData({...editData, mood: e.target.value})}
-                          >
-                            <option value="">None</option>
-                            <option value="😩">😩 Terrible</option>
-                            <option value="😕">😕 Bad</option>
-                            <option value="😐">😐 Neutral</option>
-                            <option value="🙂">🙂 Good</option>
-                            <option value="😄">😄 Great</option>
-                          </select>
-                        </div>
-                        <div>
-                          <label className="label">Stress ({editData.stress_level}/10)</label>
-                          <input
-                            type="range"
-                            min="1"
-                            max="10"
-                            className="mt-2"
-                            value={editData.stress_level}
-                            onChange={e => setEditData({...editData, stress_level: parseInt(e.target.value)})}
-                          />
-                        </div>
-                      </div>
-                      <div>
-                        <label className="label">Thoughts</label>
-                        <textarea
-                          className="input-field min-h-[100px]"
-                          value={editData.mind_notes || ''}
-                          onChange={e => setEditData({...editData, mind_notes: e.target.value})}
-                        />
-                      </div>
-                    </>
-                  )}
-
-                  <div className="flex gap-3 pt-4">
-                    <button
-                      onClick={handleSave}
-                      className="btn-primary flex-1 py-3"
-                    >
-                      Save Changes
-                    </button>
-                    <button
-                      onClick={() => setIsEditing(false)}
-                      className="btn-secondary flex-1 py-3"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
+          onEditDataChange={setEditData}
+          onCancelEdit={() => setIsEditing(false)}
+        />
       )}
     </div>
   );
