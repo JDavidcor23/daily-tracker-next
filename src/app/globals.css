@@ -1,26 +1,127 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@theme {
+  --font-sans: 'Inter', var(--font-geist-sans), system-ui, sans-serif;
+  
+  --color-brand-50: #eef2ff;
+  --color-brand-100: #e0e7ff;
+  --color-brand-200: #c7d2fe;
+  --color-brand-300: #a5b4fc;
+  --color-brand-400: #818cf8;
+  --color-brand-500: #6366f1;
+  --color-brand-600: #4f46e5;
+  --color-brand-700: #4338ca;
+  --color-brand-800: #3730a3;
+  --color-brand-900: #312e81;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    @apply bg-slate-50 text-slate-800 min-h-screen dark:bg-slate-950 dark:text-slate-200;
+    margin: 0;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-slate-100 dark:bg-slate-900;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-slate-300 rounded-full dark:bg-slate-700;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-slate-400 dark:bg-slate-600;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer components {
+  /* Generic card */
+  .card {
+    @apply bg-white border border-slate-100 rounded-2xl p-5 shadow-sm transition-all duration-300;
+    @apply dark:bg-slate-900 dark:border-slate-800 dark:shadow-none;
+  }
+
+  /* Input fields */
+  .input-field {
+    @apply w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all;
+    @apply dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200 dark:focus:ring-brand-400;
+  }
+
+  /* Labels */
+  .label {
+    @apply block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2 mt-1 px-1;
+    @apply dark:text-slate-500;
+  }
+
+  /* Buttons */
+  .btn-primary {
+    @apply bg-brand-600 text-white font-bold rounded-xl px-6 py-3 hover:bg-brand-700 active:scale-95 transition-all disabled:opacity-50 disabled:active:scale-100;
+    @apply dark:bg-brand-500 dark:hover:bg-brand-600;
+  }
+
+  .btn-secondary {
+    @apply bg-white border border-slate-200 text-slate-700 font-bold rounded-xl px-6 py-3 hover:bg-slate-50 active:scale-95 transition-all;
+    @apply dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-700;
+  }
+
+  /* Module specific styling */
+  .module-section {
+    @apply space-y-4;
+  }
+
+  .module-header {
+    @apply flex items-center gap-3 mb-4;
+  }
+
+  .module-icon {
+    @apply w-12 h-12 rounded-2xl flex items-center justify-center text-2xl shadow-sm border border-slate-50;
+    @apply dark:border-slate-800 dark:bg-slate-800/50;
+  }
+
+  .module-title {
+    @apply font-bold text-slate-800 h-6 flex items-center;
+    @apply dark:text-slate-100;
+  }
+
+  .module-subtitle {
+    @apply text-xs text-slate-400 font-medium;
+    @apply dark:text-slate-500;
+  }
+
+  .pill {
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium;
+  }
+
+  /* Custom Range Slider */
+  input[type="range"] {
+    @apply w-full h-2 bg-slate-100 rounded-lg appearance-none cursor-pointer;
+    @apply dark:bg-slate-800;
+  }
+
+  input[type="range"]::-webkit-slider-thumb {
+    @apply appearance-none w-6 h-6 bg-white border-2 border-brand-500 rounded-full shadow-md active:scale-110 transition-transform;
+    @apply dark:bg-slate-100;
+  }
+
+  /* Animations */
+  .animate-fade-in {
+    animation: fadeIn 0.3s ease-out;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
 }
