@@ -75,5 +75,35 @@ export function useHistory() {
 
   const sortedDates = Object.keys(groups).sort((a, b) => b.localeCompare(a));
 
-  return { loading, search, setSearch, activeFilter, setActiveFilter, groups, sortedDates };
+  const deleteEntry = async (entry: any) => {
+    try {
+      if (entry.type === 'task') {
+        await api.deleteTodo(entry.id);
+        setTodos(prev => prev.filter(t => t.id !== entry.id));
+      } else {
+        await api.deleteLog(entry.id);
+        setLogs(prev => prev.filter(l => l.id !== entry.id));
+      }
+      toast.success('Entry deleted successfully');
+    } catch (error: any) {
+      toast.error('Failed to delete: ' + error.message);
+    }
+  };
+
+  const updateEntry = async (entry: any, updates: any) => {
+    try {
+      if (entry.type === 'task') {
+        const result = await api.updateTodo(entry.id, updates);
+        setTodos(prev => prev.map(t => t.id === entry.id ? { ...t, ...result[0] } : t));
+      } else {
+        const result = await api.updateLog(entry.id, updates);
+        setLogs(prev => prev.map(l => l.id === entry.id ? { ...l, ...result[0] } : l));
+      }
+      toast.success('Entry updated successfully');
+    } catch (error: any) {
+      toast.error('Failed to update: ' + error.message);
+    }
+  };
+
+  return { loading, search, setSearch, activeFilter, setActiveFilter, groups, sortedDates, deleteEntry, updateEntry };
 }

@@ -42,6 +42,13 @@ export const api = {
       body: JSON.stringify(log),
     });
   },
+  updateLog: (id: string, updates: Partial<DailyLog>) => request<DailyLog[]>(`/api/logs/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(updates),
+  }),
+  deleteLog: (id: string) => request<void>(`/api/logs/${id}`, {
+    method: 'DELETE',
+  }),
 
   // Google Fit
   googleFit: {

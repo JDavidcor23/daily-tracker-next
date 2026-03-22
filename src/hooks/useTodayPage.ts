@@ -49,5 +49,25 @@ export function useTodayPage() {
     }
   };
 
-  return { today, timeline, loading, handleLog };
+  const updateLog = async (id: string, updates: Partial<DailyLog>) => {
+    try {
+      const result = await api.updateLog(id, updates);
+      setTimeline(prev => prev.map(l => l.id === id ? { ...l, ...result[0] } : l));
+      toast.success('Log updated!');
+    } catch (error: any) {
+      toast.error(`Update failed: ${error.message}`);
+    }
+  };
+
+  const deleteLog = async (id: string) => {
+    try {
+      await api.deleteLog(id);
+      setTimeline(prev => prev.filter(l => l.id !== id));
+      toast.success('Log deleted!');
+    } catch (error: any) {
+      toast.error(`Delete failed: ${error.message}`);
+    }
+  };
+
+  return { today, timeline, loading, handleLog, updateLog, deleteLog };
 }

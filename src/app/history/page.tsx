@@ -32,8 +32,28 @@ const FILTER_OPTIONS: { id: HistoryFilter; label: string; icon: string }[] = [
 ];
 
 export default function HistoryPage() {
-  const { loading, search, setSearch, activeFilter, setActiveFilter, groups, sortedDates } = useHistory();
+  const { loading, search, setSearch, activeFilter, setActiveFilter, groups, sortedDates, deleteEntry, updateEntry } = useHistory();
   const [selectedEntry, setSelectedEntry] = React.useState<any | null>(null);
+  const [isEditing, setIsEditing] = React.useState(false);
+  const [editData, setEditData] = React.useState<any>(null);
+
+  const startEditing = (entry: any) => {
+    setEditData({ ...entry });
+    setIsEditing(true);
+  };
+
+  const handleSave = async () => {
+    await updateEntry(selectedEntry, editData);
+    setSelectedEntry({ ...editData });
+    setIsEditing(false);
+  };
+
+  const handleDelete = async (entry: any) => {
+    if (confirm('Are you sure you want to delete this entry?')) {
+      await deleteEntry(entry);
+      setSelectedEntry(null);
+    }
+  };
 
   return (
     <div className="px-4 py-8 space-y-10 font-sans animate-fade-in">
@@ -90,8 +110,11 @@ export default function HistoryPage() {
               {groups[date].map((entry) => (
                 <div
                   key={entry.id}
-                  onClick={() => setSelectedEntry(entry)}
-                  className="card p-5 group hover:shadow-md transition-all duration-300 border-slate-100 dark:border-slate-800/50 cursor-pointer"
+                  onClick={() => {
+                    setSelectedEntry(entry);
+                    setIsEditing(false);
+                  }}
+                  className="card p-5 group hover:shadow-md transition-all duration-300 border-slate-100 dark:border-slate-800/50 cursor-pointer relative"
                 >
                   <div className="flex items-start gap-4">
                     <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0 shadow-sm border border-slate-50 dark:border-slate-800 transition-transform group-hover:scale-110
@@ -175,17 +198,44 @@ export default function HistoryPage() {
       {selectedEntry && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in"
-          onClick={() => setSelectedEntry(null)}
+          onClick={() => {
+            setSelectedEntry(null);
+            setIsEditing(false);
+          }}
         >
           <div className="card w-full max-w-lg overflow-hidden shadow-2xl relative border-0 dark:border dark:border-slate-800 animate-fade-in" onClick={(e) => e.stopPropagation()}>
-            <button
-              onClick={() => setSelectedEntry(null)}
-              className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors z-10"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
+            <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
+              {!isEditing && (
+                <>
+                  <button
+                    onClick={() => startEditing(selectedEntry)}
+                    className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 hover:text-brand-500 transition-colors"
+                    title="Edit"
+                  >
+                    ✏️
+                  </button>
+                  <button
+                    onClick={() => handleDelete(selectedEntry)}
+                    className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 hover:text-rose-500 transition-colors"
+                    title="Delete"
+                  >
+                    🗑️
+                  </button>
+                </>
+              )}
+              <button
+                onClick={() => {
+                  setSelectedEntry(null);
+                  setIsEditing(false);
+                }}
+                className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+                title="Close"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
 
             <div className={`h-2 absolute top-0 left-0 right-0 ${
               selectedEntry.log_module === 'nutrition' ? 'bg-emerald-500' :
@@ -194,10 +244,10 @@ export default function HistoryPage() {
               selectedEntry.log_module === 'task' ? 'bg-amber-500' :
               'bg-violet-500'}`} />
 
-            <div className="pt-8 px-6 pb-8">
+            <div className="pt-8 px-6 pb-8 max-h-[90vh] overflow-y-auto custom-scrollbar">
               <div className="mb-6">
                 <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 block mb-1">
-                  {selectedEntry.type === 'task' ? 'TASK' : selectedEntry.log_module}
+                  {isEditing ? 'EDITING ' : ''}{selectedEntry.type === 'task' ? 'TASK' : selectedEntry.log_module}
                 </span>
                 <h2 className="text-2xl font-black text-slate-800 dark:text-slate-100 flex items-center gap-3">
                   <span className="text-4xl drop-shadow-sm">
@@ -208,7 +258,7 @@ export default function HistoryPage() {
                       (selectedEntry.mood ? selectedEntry.mood : '🧠')
                     )}
                   </span>
-                  {selectedEntry.type === 'task' ? selectedEntry.text :
+                  {selectedEntry.type === 'task' ? (isEditing ? 'Update Task' : selectedEntry.text) :
                     selectedEntry.log_module === 'nutrition' ? 'Nutrition' :
                     selectedEntry.log_module === 'training' ? 'Training' :
                     selectedEntry.log_module === 'study' ? 'Study session' :
@@ -217,129 +267,320 @@ export default function HistoryPage() {
                 </h2>
               </div>
 
-              <div className="space-y-6">
-                {selectedEntry.type === 'task' && (
-                  <>
-                    <div>
-                      <h3 className="text-[10px] font-black uppercase text-slate-400 mb-2">Description</h3>
-                      <div className="bg-slate-50 dark:bg-slate-800/30 rounded-2xl p-4 text-sm text-slate-600 dark:text-slate-300 leading-relaxed min-h-[80px] border border-slate-100 dark:border-slate-800 font-medium whitespace-pre-wrap">
-                        {selectedEntry.description || <span className="italic opacity-30">No description provided.</span>}
+              {!isEditing ? (
+                <div className="space-y-6">
+                  {selectedEntry.type === 'task' && (
+                    <>
+                      <div>
+                        <h3 className="text-[10px] font-black uppercase text-slate-400 mb-2">Description</h3>
+                        <div className="bg-slate-50 dark:bg-slate-800/30 rounded-2xl p-4 text-sm text-slate-600 dark:text-slate-300 leading-relaxed min-h-[80px] border border-slate-100 dark:border-slate-800 font-medium whitespace-pre-wrap">
+                          {selectedEntry.description || <span className="italic opacity-30">No description provided.</span>}
+                        </div>
                       </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="bg-slate-50 dark:bg-slate-800/20 p-4 rounded-2xl border border-slate-100 dark:border-slate-800">
-                        <h3 className="text-[10px] font-black uppercase text-slate-400 mb-1">Priority</h3>
-                        <span className={`text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full ${
-                          selectedEntry.priority === 'high' ? 'bg-rose-100 text-rose-600 dark:bg-rose-900/40 dark:text-rose-400' :
-                          selectedEntry.priority === 'medium' ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400' : 'bg-slate-100 text-slate-500 dark:bg-slate-800'
-                        }`}>
-                          {selectedEntry.priority}
-                        </span>
-                      </div>
-                      {selectedEntry.due_date && (
+                      <div className="grid grid-cols-2 gap-4">
                         <div className="bg-slate-50 dark:bg-slate-800/20 p-4 rounded-2xl border border-slate-100 dark:border-slate-800">
-                          <h3 className="text-[10px] font-black uppercase text-slate-400 mb-1">Due Date</h3>
-                          <div className="flex items-center gap-2 text-rose-600 dark:text-rose-400 font-black text-sm">
-                            <span className="text-xl">📅</span> {selectedEntry.due_date}
+                          <h3 className="text-[10px] font-black uppercase text-slate-400 mb-1">Priority</h3>
+                          <span className={`text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full ${
+                            selectedEntry.priority === 'high' ? 'bg-rose-100 text-rose-600 dark:bg-rose-900/40 dark:text-rose-400' :
+                            selectedEntry.priority === 'medium' ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400' : 'bg-slate-100 text-slate-500 dark:bg-slate-800'
+                          }`}>
+                            {selectedEntry.priority}
+                          </span>
+                        </div>
+                        {selectedEntry.due_date && (
+                          <div className="bg-slate-50 dark:bg-slate-800/20 p-4 rounded-2xl border border-slate-100 dark:border-slate-800">
+                            <h3 className="text-[10px] font-black uppercase text-slate-400 mb-1">Due Date</h3>
+                            <div className="flex items-center gap-2 text-rose-600 dark:text-rose-400 font-black text-sm">
+                              <span className="text-xl">📅</span> {selectedEntry.due_date}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  )}
+
+                  {selectedEntry.log_module === 'nutrition' && (
+                    <div>
+                      <h3 className="text-[10px] font-black uppercase text-slate-400 mb-2">Meals Logged</h3>
+                      <div className="bg-emerald-50/30 dark:bg-emerald-950/20 rounded-2xl p-4 text-sm text-slate-700 dark:text-slate-200 leading-relaxed min-h-[100px] border border-emerald-100/50 dark:border-emerald-900/30 font-bold whitespace-pre-wrap">
+                        {selectedEntry.food_meals}
+                      </div>
+                      {selectedEntry.food_notes && (
+                        <div className="mt-6">
+                          <h3 className="text-[10px] font-black uppercase text-slate-400 mb-2">Internal Notes</h3>
+                          <div className="bg-slate-50 dark:bg-slate-800/30 rounded-2xl p-4 text-sm text-slate-500 dark:text-slate-400 italic border border-slate-100 dark:border-slate-800">
+                            "{selectedEntry.food_notes}"
                           </div>
                         </div>
                       )}
                     </div>
-                  </>
-                )}
+                  )}
 
-                {selectedEntry.log_module === 'nutrition' && (
-                  <div>
-                    <h3 className="text-[10px] font-black uppercase text-slate-400 mb-2">Meals Logged</h3>
-                    <div className="bg-emerald-50/30 dark:bg-emerald-950/20 rounded-2xl p-4 text-sm text-slate-700 dark:text-slate-200 leading-relaxed min-h-[100px] border border-emerald-100/50 dark:border-emerald-900/30 font-bold whitespace-pre-wrap">
-                      {selectedEntry.food_meals}
-                    </div>
-                    {selectedEntry.food_notes && (
-                      <div className="mt-6">
-                        <h3 className="text-[10px] font-black uppercase text-slate-400 mb-2">Internal Notes</h3>
-                        <div className="bg-slate-50 dark:bg-slate-800/30 rounded-2xl p-4 text-sm text-slate-500 dark:text-slate-400 italic border border-slate-100 dark:border-slate-800">
-                          "{selectedEntry.food_notes}"
+                  {selectedEntry.log_module === 'training' && (
+                    <div>
+                      <div className="grid grid-cols-2 gap-4 mb-4">
+                        <div className="bg-orange-50/30 dark:bg-orange-950/20 p-4 rounded-2xl border border-orange-100 dark:border-orange-900/30">
+                          <h3 className="text-[10px] font-black uppercase text-slate-400 mb-1">Workout Type</h3>
+                          <p className="text-lg font-black text-slate-800 dark:text-slate-100">{selectedEntry.train_type || 'Rest Day'}</p>
                         </div>
+                        {selectedEntry.train_duration && (
+                          <div className="bg-brand-50/30 dark:bg-brand-950/20 p-4 rounded-2xl border border-brand-100 dark:border-brand-900/30">
+                            <h3 className="text-[10px] font-black uppercase text-slate-400 mb-1">Duration</h3>
+                            <p className="text-lg font-black text-brand-600 dark:text-brand-400">{selectedEntry.train_duration}m</p>
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
-                )}
+                      {selectedEntry.train_notes && (
+                        <div>
+                          <h3 className="text-[10px] font-black uppercase text-slate-400 mb-2">Session Notes</h3>
+                          <div className="bg-slate-50 dark:bg-slate-800/30 rounded-2xl p-4 text-sm text-slate-700 dark:text-slate-200 leading-relaxed border border-slate-100 dark:border-slate-800 font-medium whitespace-pre-wrap">
+                            {selectedEntry.train_notes}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
 
-                {selectedEntry.log_module === 'training' && (
-                  <div>
-                    <div className="grid grid-cols-2 gap-4 mb-4">
-                      <div className="bg-orange-50/30 dark:bg-orange-950/20 p-4 rounded-2xl border border-orange-100 dark:border-orange-900/30">
-                        <h3 className="text-[10px] font-black uppercase text-slate-400 mb-1">Workout Type</h3>
-                        <p className="text-lg font-black text-slate-800 dark:text-slate-100">{selectedEntry.train_type || 'Rest Day'}</p>
+                  {selectedEntry.log_module === 'study' && (
+                    <div>
+                      <div className="bg-blue-50/30 dark:bg-blue-950/20 p-5 rounded-2xl border border-blue-100 dark:border-blue-900/30 mb-4">
+                        <h3 className="text-[10px] font-black uppercase text-slate-400 mb-1">Study Topic</h3>
+                        <p className="text-xl font-black text-slate-800 dark:text-slate-100 tracking-tight">{selectedEntry.study_topic}</p>
+                        {selectedEntry.study_time && (
+                          <div className="mt-3 flex items-center gap-2 text-brand-500 font-black">
+                            <span className="text-xl">⏱️</span> {selectedEntry.study_time} minutes spent
+                          </div>
+                        )}
                       </div>
-                      {selectedEntry.train_duration && (
+                      {selectedEntry.study_notes && (
+                        <div>
+                          <h3 className="text-[10px] font-black uppercase text-slate-400 mb-2">Learned Today</h3>
+                          <div className="bg-slate-50 dark:bg-slate-800/30 rounded-2xl p-4 text-sm text-slate-700 dark:text-slate-200 leading-relaxed border border-slate-100 dark:border-slate-800 font-medium whitespace-pre-wrap">
+                            {selectedEntry.study_notes}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {selectedEntry.log_module === 'mind' && (
+                    <div>
+                      <div className="grid grid-cols-2 gap-4 mb-4">
+                        <div className="bg-violet-50/30 dark:bg-violet-950/20 p-4 rounded-2xl border border-violet-100 dark:border-violet-900/30">
+                          <h3 className="text-[10px] font-black uppercase text-slate-400 mb-1">Mood Status</h3>
+                          <p className="text-xl font-black text-slate-800 dark:text-slate-100">{selectedEntry.mood} {selectedEntry.mood ? MOOD_LABELS[selectedEntry.mood as Mood] : ''}</p>
+                        </div>
                         <div className="bg-brand-50/30 dark:bg-brand-950/20 p-4 rounded-2xl border border-brand-100 dark:border-brand-900/30">
-                          <h3 className="text-[10px] font-black uppercase text-slate-400 mb-1">Duration</h3>
-                          <p className="text-lg font-black text-brand-600 dark:text-brand-400">{selectedEntry.train_duration}m</p>
+                          <h3 className="text-[10px] font-black uppercase text-slate-400 mb-1">Stress Factor</h3>
+                          <p className="text-xl font-black text-slate-800 dark:text-slate-100">{selectedEntry.stress_level}/10</p>
+                        </div>
+                      </div>
+                      {selectedEntry.mind_notes && (
+                        <div>
+                          <h3 className="text-[10px] font-black uppercase text-slate-400 mb-2">Thoughts Logged</h3>
+                          <div className="bg-slate-50 dark:bg-slate-800/30 rounded-2xl p-4 text-sm text-slate-700 dark:text-slate-200 leading-relaxed border border-slate-100 dark:border-slate-800 font-medium whitespace-pre-wrap">
+                            {selectedEntry.mind_notes}
+                          </div>
                         </div>
                       )}
                     </div>
-                    {selectedEntry.train_notes && (
-                      <div>
-                        <h3 className="text-[10px] font-black uppercase text-slate-400 mb-2">Session Notes</h3>
-                        <div className="bg-slate-50 dark:bg-slate-800/30 rounded-2xl p-4 text-sm text-slate-700 dark:text-slate-200 leading-relaxed border border-slate-100 dark:border-slate-800 font-medium whitespace-pre-wrap">
-                          {selectedEntry.train_notes}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
+                  )}
 
-                {selectedEntry.log_module === 'study' && (
-                  <div>
-                    <div className="bg-blue-50/30 dark:bg-blue-950/20 p-5 rounded-2xl border border-blue-100 dark:border-blue-900/30 mb-4">
-                      <h3 className="text-[10px] font-black uppercase text-slate-400 mb-1">Study Topic</h3>
-                      <p className="text-xl font-black text-slate-800 dark:text-slate-100 tracking-tight">{selectedEntry.study_topic}</p>
-                      {selectedEntry.study_time && (
-                        <div className="mt-3 flex items-center gap-2 text-brand-500 font-black">
-                          <span className="text-xl">⏱️</span> {selectedEntry.study_time} minutes spent
-                        </div>
-                      )}
-                    </div>
-                    {selectedEntry.study_notes && (
-                      <div>
-                        <h3 className="text-[10px] font-black uppercase text-slate-400 mb-2">Learned Today</h3>
-                        <div className="bg-slate-50 dark:bg-slate-800/30 rounded-2xl p-4 text-sm text-slate-700 dark:text-slate-200 leading-relaxed border border-slate-100 dark:border-slate-800 font-medium whitespace-pre-wrap">
-                          {selectedEntry.study_notes}
-                        </div>
-                      </div>
-                    )}
+                  <div className="border-t border-slate-100 dark:border-slate-800 pt-6 mt-6 flex justify-between items-center text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
+                    <span className="flex items-center gap-1.5"><span className="text-sm">🗓️</span> {formatDate(selectedEntry.date)}</span>
+                    <span className="flex items-center gap-1.5"><span className="text-sm">🕘</span> {selectedEntry.created_at ? formatTime(selectedEntry.created_at) : ''}</span>
                   </div>
-                )}
-
-                {selectedEntry.log_module === 'mind' && (
-                  <div>
-                    <div className="grid grid-cols-2 gap-4 mb-4">
-                      <div className="bg-violet-50/30 dark:bg-violet-950/20 p-4 rounded-2xl border border-violet-100 dark:border-violet-900/30">
-                        <h3 className="text-[10px] font-black uppercase text-slate-400 mb-1">Mood Status</h3>
-                        <p className="text-xl font-black text-slate-800 dark:text-slate-100">{selectedEntry.mood} {selectedEntry.mood ? MOOD_LABELS[selectedEntry.mood as Mood] : ''}</p>
-                      </div>
-                      <div className="bg-brand-50/30 dark:bg-brand-950/20 p-4 rounded-2xl border border-brand-100 dark:border-brand-900/30">
-                        <h3 className="text-[10px] font-black uppercase text-slate-400 mb-1">Stress Factor</h3>
-                        <p className="text-xl font-black text-slate-800 dark:text-slate-100">{selectedEntry.stress_level}/10</p>
-                      </div>
-                    </div>
-                    {selectedEntry.mind_notes && (
-                      <div>
-                        <h3 className="text-[10px] font-black uppercase text-slate-400 mb-2">Thoughts Logged</h3>
-                        <div className="bg-slate-50 dark:bg-slate-800/30 rounded-2xl p-4 text-sm text-slate-700 dark:text-slate-200 leading-relaxed border border-slate-100 dark:border-slate-800 font-medium whitespace-pre-wrap">
-                          {selectedEntry.mind_notes}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                <div className="border-t border-slate-100 dark:border-slate-800 pt-6 mt-6 flex justify-between items-center text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
-                  <span className="flex items-center gap-1.5"><span className="text-sm">🗓️</span> {formatDate(selectedEntry.date)}</span>
-                  <span className="flex items-center gap-1.5"><span className="text-sm">🕘</span> {selectedEntry.created_at ? formatTime(selectedEntry.created_at) : ''}</span>
                 </div>
-              </div>
+              ) : (
+                <div className="space-y-5 animate-fade-in">
+                  {selectedEntry.type === 'task' && (
+                    <>
+                      <div>
+                        <label className="label">Task Content</label>
+                        <input
+                          type="text"
+                          className="input-field"
+                          value={editData.text}
+                          onChange={e => setEditData({...editData, text: e.target.value})}
+                        />
+                      </div>
+                      <div>
+                        <label className="label">Description</label>
+                        <textarea
+                          className="input-field min-h-[80px]"
+                          value={editData.description || ''}
+                          onChange={e => setEditData({...editData, description: e.target.value})}
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="label">Priority</label>
+                          <select
+                            className="input-field"
+                            value={editData.priority}
+                            onChange={e => setEditData({...editData, priority: e.target.value})}
+                          >
+                            <option value="low">Low</option>
+                            <option value="medium">Medium</option>
+                            <option value="high">High</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="label">Due Date</label>
+                          <input
+                            type="date"
+                            className="input-field"
+                            value={editData.due_date || ''}
+                            onChange={e => setEditData({...editData, due_date: e.target.value})}
+                          />
+                        </div>
+                      </div>
+                    </>
+                  )}
+
+                  {selectedEntry.log_module === 'nutrition' && (
+                    <>
+                      <div>
+                        <label className="label">Meals</label>
+                        <textarea
+                          className="input-field min-h-[100px]"
+                          value={editData.food_meals}
+                          onChange={e => setEditData({...editData, food_meals: e.target.value})}
+                        />
+                      </div>
+                      <div>
+                        <label className="label">Notes</label>
+                        <input
+                          type="text"
+                          className="input-field"
+                          value={editData.food_notes || ''}
+                          onChange={e => setEditData({...editData, food_notes: e.target.value})}
+                        />
+                      </div>
+                    </>
+                  )}
+
+                  {selectedEntry.log_module === 'training' && (
+                    <>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="label">Workout Type</label>
+                          <input
+                            type="text"
+                            className="input-field"
+                            value={editData.train_type || ''}
+                            onChange={e => setEditData({...editData, train_type: e.target.value})}
+                          />
+                        </div>
+                        <div>
+                          <label className="label">Duration (min)</label>
+                          <input
+                            type="number"
+                            className="input-field"
+                            value={editData.train_duration || ''}
+                            onChange={e => setEditData({...editData, train_duration: e.target.value})}
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="label">Notes</label>
+                        <textarea
+                          className="input-field min-h-[80px]"
+                          value={editData.train_notes || ''}
+                          onChange={e => setEditData({...editData, train_notes: e.target.value})}
+                        />
+                      </div>
+                    </>
+                  )}
+
+                  {selectedEntry.log_module === 'study' && (
+                    <>
+                      <div>
+                        <label className="label">Topic</label>
+                        <input
+                          type="text"
+                          className="input-field"
+                          value={editData.study_topic}
+                          onChange={e => setEditData({...editData, study_topic: e.target.value})}
+                        />
+                      </div>
+                      <div>
+                        <label className="label">Duration (min)</label>
+                        <input
+                          type="number"
+                          className="input-field"
+                          value={editData.study_time || ''}
+                          onChange={e => setEditData({...editData, study_time: e.target.value})}
+                        />
+                      </div>
+                      <div>
+                        <label className="label">Notes</label>
+                        <textarea
+                          className="input-field min-h-[80px]"
+                          value={editData.study_notes || ''}
+                          onChange={e => setEditData({...editData, study_notes: e.target.value})}
+                        />
+                      </div>
+                    </>
+                  )}
+
+                  {selectedEntry.log_module === 'mind' && (
+                    <>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="label">Mood</label>
+                          <select
+                            className="input-field"
+                            value={editData.mood}
+                            onChange={e => setEditData({...editData, mood: e.target.value})}
+                          >
+                            <option value="">None</option>
+                            <option value="😩">😩 Terrible</option>
+                            <option value="😕">😕 Bad</option>
+                            <option value="😐">😐 Neutral</option>
+                            <option value="🙂">🙂 Good</option>
+                            <option value="😄">😄 Great</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="label">Stress ({editData.stress_level}/10)</label>
+                          <input
+                            type="range"
+                            min="1"
+                            max="10"
+                            className="mt-2"
+                            value={editData.stress_level}
+                            onChange={e => setEditData({...editData, stress_level: parseInt(e.target.value)})}
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="label">Thoughts</label>
+                        <textarea
+                          className="input-field min-h-[100px]"
+                          value={editData.mind_notes || ''}
+                          onChange={e => setEditData({...editData, mind_notes: e.target.value})}
+                        />
+                      </div>
+                    </>
+                  )}
+
+                  <div className="flex gap-3 pt-4">
+                    <button
+                      onClick={handleSave}
+                      className="btn-primary flex-1 py-3"
+                    >
+                      Save Changes
+                    </button>
+                    <button
+                      onClick={() => setIsEditing(false)}
+                      className="btn-secondary flex-1 py-3"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
