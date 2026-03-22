@@ -40,20 +40,33 @@ src/
 │   ├── layout.tsx        # Root layout
 │   └── page.tsx          # Main dashboard
 ├── components/
-│   ├── modules/          # NutritionModule, TrainingModule, StudyModule, MindModule, FitnessModule
-│   ├── Layout.tsx
+│   ├── modules/          # Core feature modules (Nutrition, Training, Study, etc.)
+│   ├── timeline/         # Modular chronological activity log & detail modals
+│   │   ├── modal-content/# Module-specific modal view/edit logic
+│   │   └── index.ts      # Component barrel exports
+│   ├── Layout.tsx        # Application shell
 │   └── DownloadReportButton.tsx
-├── hooks/                # useTodayPage, useFitnessData, useDownloadReport, useHistory, useTodos, useSettings
+├── hooks/                # Custom hooks for state and data fetching
 ├── lib/
+│   ├── utils.ts          # Shared formatting and helper functions
 │   ├── supabase.ts       # Supabase client
-│   ├── types.ts          # TypeScript types
-│   ├── constants.ts      # App constants
+│   ├── types.ts          # Core type definitions
+│   ├── constants.ts      # App-wide constants
 │   ├── google-fit.ts     # Google Fit helpers
-│   ├── api.ts            # API client helpers
+│   ├── api.ts            # API client layer
 │   └── pdfGenerator.ts   # PDF report generation
 └── context/
-    └── SupabaseContext.tsx
+    └── SupabaseContext.tsx # Database context provider
 ```
+
+## Architecture & Design
+
+The project follows a **Modular Separation of Layers** as defined in [GEMINI.md](file:///c:/Users/PC/Documents/web/my_proyects/daily-tracker-next/GEMINI.md):
+
+- **Hooks Layer**: Isolates business logic and Supabase/API interactions.
+- **Modules Layer**: Specialized components for specific data entry and visualization.
+- **Timeline Layer**: A centralized chronological view of all daily activities, utilizing modular subcomponents for detail views and editing.
+- **Utils Layer**: Pure functions for formatting and consistent UI helpers.
 
 ## Getting Started
 
