@@ -3,25 +3,38 @@ import supabase from '@/lib/supabase';
 
 const getDateRange = (period: string, clientLocalStr?: string | null) => {
   const now = new Date();
-  let end = clientLocalStr || now.toISOString().split('T')[0];
-  let startStr = '';
+  const localStr = clientLocalStr || now.toISOString().split('T')[0];
 
   if (period === 'today') {
-    startStr = end;
-  } else if (period === 'week') {
+    return { start: localStr, end: localStr };
+  }
+
+  if (period === 'week') {
     const d = clientLocalStr ? new Date(clientLocalStr + 'T12:00:00Z') : now;
     const day = d.getUTCDay();
     const diff = d.getUTCDate() - day + (day === 0 ? -6 : 1);
     const start = new Date(d.getTime());
     start.setUTCDate(diff);
-    startStr = start.toISOString().split('T')[0];
-  } else if (period === 'month') {
-    const d = clientLocalStr ? new Date(clientLocalStr + 'T12:00:00Z') : now;
-    const start = new Date(d.getUTCFullYear(), d.getUTCMonth(), 1);
-    startStr = start.toISOString().split('T')[0];
+    const startStr = start.toISOString().split('T')[0];
+    // End = start + 6 days (Sunday)
+    const endDate = new Date(start.getTime() + 6 * 24 * 60 * 60 * 1000);
+    const endStr = endDate.toISOString().split('T')[0];
+    return { start: startStr, end: endStr };
   }
 
-  return { start: startStr, end };
+  if (period === 'month') {
+    const d = clientLocalStr ? new Date(clientLocalStr + 'T12:00:00Z') : now;
+    const year = d.getUTCFullYear();
+    const month = d.getUTCMonth();
+    const start = new Date(Date.UTC(year, month, 1));
+    const startStr = start.toISOString().split('T')[0];
+    // End = last day of the month
+    const end = new Date(Date.UTC(year, month + 1, 0));
+    const endStr = end.toISOString().split('T')[0];
+    return { start: startStr, end: endStr };
+  }
+
+  return { start: localStr, end: localStr };
 };
 
 export async function GET(
