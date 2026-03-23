@@ -23,6 +23,7 @@ export const TimelineEntry: React.FC<TimelineEntryProps> = ({
         ${entry.log_module === 'nutrition' ? 'bg-emerald-400' :
           entry.log_module === 'training' ? 'bg-orange-400' :
           entry.log_module === 'study' ? 'bg-blue-400' :
+          entry.log_module === 'task' ? 'bg-sky-400' :
           'bg-violet-400'}`}
       />
 
@@ -80,6 +81,16 @@ export const TimelineEntry: React.FC<TimelineEntryProps> = ({
               </div>
             </div>
             {entry.mind_notes && <p className="text-xs text-slate-500 mt-3 italic bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-100 dark:border-slate-800">"{entry.mind_notes}"</p>}
+          </div>
+        )}
+
+        {entry.log_module === 'task' && (
+          <div className="animate-fade-in pr-12">
+            <p className="font-bold text-slate-700 dark:text-slate-200 text-sm">
+              <span className="text-green-500 mr-2">✔️</span>
+              <span className="line-through opacity-80">{entry.text}</span>
+            </p>
+            {entry.description && <p className="text-xs text-slate-500 mt-2 italic border-l-2 border-slate-100 dark:border-slate-800 pl-2">{entry.description}</p>}
           </div>
         )}
 

@@ -2,12 +2,12 @@
 
 import React from 'react';
 import { useTodayPage } from '@/hooks/useTodayPage';
-import { NutritionModule, TrainingModule, StudyModule, MindModule, FitnessModule } from '@/components/modules';
+import { NutritionModule, TrainingModule, StudyModule, MindModule, FitnessModule, TodosModule } from '@/components/modules';
 import { Timeline, EntryDetailModal } from '@/components/timeline';
 import { formatDisplayDate } from '@/lib/utils';
 
 export default function TodayPage() {
-  const { today, timeline, loading, handleLog, updateLog, deleteLog } = useTodayPage();
+  const { today, timeline, loading, handleLog, updateEntry, deleteEntry } = useTodayPage();
   const [selectedEntry, setSelectedEntry] = React.useState<any | null>(null);
   const [isEditing, setIsEditing] = React.useState(false);
   const [editData, setEditData] = React.useState<any>(null);
@@ -19,7 +19,7 @@ export default function TodayPage() {
 
   const handleSave = async () => {
     if (selectedEntry?.id) {
-      await updateLog(selectedEntry.id, editData);
+      await updateEntry(selectedEntry, editData);
       setSelectedEntry({ ...editData });
       setIsEditing(false);
     }
@@ -27,7 +27,7 @@ export default function TodayPage() {
 
   const handleDelete = async (entry: any) => {
     if (confirm('Are you sure you want to delete this log?')) {
-      await deleteLog(entry.id);
+      await deleteEntry(entry);
       setSelectedEntry(null);
     }
   };
@@ -52,6 +52,7 @@ export default function TodayPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
+        <TodosModule />
         <NutritionModule onLog={(data) => handleLog('nutrition', data)} />
         <TrainingModule onLog={(data) => handleLog('training', data)} />
         <StudyModule onLog={(data) => handleLog('study', data)} />

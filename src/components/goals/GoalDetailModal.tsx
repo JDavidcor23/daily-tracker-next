@@ -35,6 +35,7 @@ export const GoalDetailModal: React.FC<GoalDetailModalProps> = ({
   const [newMilestoneDueDate, setNewMilestoneDueDate] = useState(new Date().toISOString().split('T')[0]);
   const [showAddMilestone, setShowAddMilestone] = useState(false);
   const [linkTaskId, setLinkTaskId] = useState('');
+  const [todoSearchTerm, setTodoSearchTerm] = useState('');
 
   const meta = LIFE_AREA_META[goal.life_area] || { bg: 'bg-gray-100', text: 'text-gray-600', icon: '🎯' };
   
@@ -51,9 +52,18 @@ export const GoalDetailModal: React.FC<GoalDetailModalProps> = ({
     if (!linkTaskId) return;
     onLinkTask(goal.id, linkTaskId);
     setLinkTaskId('');
+    setTodoSearchTerm('');
   };
 
-  const unlinkedTodos = allTodos.filter(todo => !goal.linkedTodos.some(lt => lt.id === todo.id));
+  const filteredUnlinkedTodos = allTodos
+    .filter(todo => !goal.linkedTodos.some(lt => lt.id === todo.id))
+    .filter(todo => {
+      const search = todoSearchTerm.toLowerCase();
+      return (
+        todo.text.toLowerCase().includes(search) || 
+        todo.id.toLowerCase().includes(search)
+      );
+    });
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
@@ -244,25 +254,48 @@ export const GoalDetailModal: React.FC<GoalDetailModalProps> = ({
                 </div>
               ))}
 
-              <form onSubmit={handleLinkTask} className="flex gap-2">
-                <select 
-                  className="flex-1 bg-slate-50 dark:bg-slate-800 border-none rounded-xl px-4 py-2.5 text-sm dark:text-slate-100 focus:ring-2 focus:ring-brand-500/20"
-                  value={linkTaskId}
-                  onChange={(e) => setLinkTaskId(e.target.value)}
-                >
-                  <option value="">Link a daily task...</option>
-                  {unlinkedTodos.map(todo => (
-                    <option key={todo.id} value={todo.id}>{todo.text}</option>
-                  ))}
-                </select>
-                <button 
-                  type="submit" 
-                  disabled={!linkTaskId}
-                  className="bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 px-4 rounded-xl text-sm font-bold disabled:opacity-30 disabled:cursor-not-allowed hover:bg-slate-800 active:scale-95 transition-all"
-                >
-                  Link
-                </button>
-              </form>
+              <div className="space-y-2">
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                  </span>
+                  <input 
+                    type="text"
+                    placeholder="Search task by name or ID..."
+                    className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl pl-10 pr-4 py-2 text-sm dark:text-slate-100 placeholder:text-slate-400 focus:ring-2 focus:ring-brand-500/20"
+                    value={todoSearchTerm}
+                    onChange={(e) => setTodoSearchTerm(e.target.value)}
+                  />
+                </div>
+
+                <form onSubmit={handleLinkTask} className="flex gap-2">
+                  <select 
+                    className="flex-1 bg-slate-50 dark:bg-slate-800 border-none rounded-xl px-4 py-2.5 text-sm dark:text-slate-100 focus:ring-2 focus:ring-brand-500/20"
+                    value={linkTaskId}
+                    onChange={(e) => setLinkTaskId(e.target.value)}
+                  >
+                    <option value="">
+                      {filteredUnlinkedTodos.length === 0 
+                        ? 'No tasks found' 
+                        : `Select task (${filteredUnlinkedTodos.length} found)...`}
+                    </option>
+                    {filteredUnlinkedTodos.map(todo => (
+                      <option key={todo.id} value={todo.id}>
+                        {todo.text} {todoSearchTerm && `(${todo.id.slice(0, 8)})`}
+                      </option>
+                    ))}
+                  </select>
+                  <button 
+                    type="submit" 
+                    disabled={!linkTaskId}
+                    className="bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 px-4 rounded-xl text-sm font-bold disabled:opacity-30 disabled:cursor-not-allowed hover:bg-slate-800 active:scale-95 transition-all"
+                  >
+                    Link
+                  </button>
+                </form>
+              </div>
             </div>
           </section>
         </div>

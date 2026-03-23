@@ -1,21 +1,23 @@
 import { NextResponse } from 'next/server';
 import supabase from '@/lib/supabase';
 
-const getDateRange = (period: string) => {
+const getDateRange = (period: string, clientLocalStr?: string | null) => {
   const now = new Date();
+  let end = clientLocalStr || now.toISOString().split('T')[0];
   let startStr = '';
-  const end = now.toISOString().split('T')[0];
 
   if (period === 'today') {
     startStr = end;
   } else if (period === 'week') {
-    const day = now.getDay();
-    const diff = now.getDate() - day + (day === 0 ? -6 : 1);
-    const start = new Date(now.getTime());
-    start.setDate(diff);
+    const d = clientLocalStr ? new Date(clientLocalStr + 'T12:00:00Z') : now;
+    const day = d.getUTCDay();
+    const diff = d.getUTCDate() - day + (day === 0 ? -6 : 1);
+    const start = new Date(d.getTime());
+    start.setUTCDate(diff);
     startStr = start.toISOString().split('T')[0];
   } else if (period === 'month') {
-    const start = new Date(now.getFullYear(), now.getMonth(), 1);
+    const d = clientLocalStr ? new Date(clientLocalStr + 'T12:00:00Z') : now;
+    const start = new Date(d.getUTCFullYear(), d.getUTCMonth(), 1);
     startStr = start.toISOString().split('T')[0];
   }
 
@@ -29,8 +31,9 @@ export async function GET(
   const { period } = await params;
   const { searchParams } = new URL(request.url);
   const module = searchParams.get('module');
+  const localDate = searchParams.get('localDate');
 
-  const { start, end } = getDateRange(period);
+  const { start, end } = getDateRange(period, localDate);
 
   const { data: logs, error: logError } = await supabase
     .from('daily_logs')

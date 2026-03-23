@@ -9,13 +9,14 @@ import { PRIORITY_WEIGHTS, TODO_FALLBACK_SORT_DATE } from '@/lib/constants';
 export type TodoTab = 'all' | 'today' | 'tomorrow' | 'week' | 'month' | 'overdue' | 'none' | 'custom';
 
 function getTodayStr() {
-  return new Date().toISOString().split('T')[0];
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
 }
 
 function getTomorrowStr() {
   const d = new Date();
   d.setDate(d.getDate() + 1);
-  return d.toISOString().split('T')[0];
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
 }
 
 function getWeekRange() {

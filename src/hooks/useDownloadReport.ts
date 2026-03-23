@@ -27,8 +27,9 @@ export function useDownloadReport() {
     const loadingToast = toast.loading(`Generating ${period} report...`);
 
     try {
+      const localDate = new Date().getFullYear() + '-' + String(new Date().getMonth() + 1).padStart(2, '0') + '-' + String(new Date().getDate()).padStart(2, '0');
       // Calling our unified API routes
-      const statusRes = await fetch(`/api/status/${period}`);
+      const statusRes = await fetch(`/api/status/${period}?localDate=${localDate}`);
       const statusData = await statusRes.json();
 
       if (!statusData.success) {
