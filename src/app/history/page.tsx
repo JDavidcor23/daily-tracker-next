@@ -3,7 +3,7 @@
 import React from 'react';
 import { useHistory } from '@/hooks/useHistory';
 import type { HistoryFilter } from '@/hooks/useHistory';
-import { MOOD_LABELS, Mood } from '@/lib/types';
+import { MOOD_LABELS, Mood, MOODS } from '@/lib/types';
 import { DATE_LOCALE, STUDY_TIME_ADVANCED_THRESHOLD } from '@/lib/constants';
 
 function formatDate(iso: string): string {
@@ -43,13 +43,15 @@ function HistoryItem({ entry, onSelect }: { entry: any, onSelect: () => void }) 
             entry.log_module === 'training' ? 'bg-orange-50 dark:bg-orange-950/30' :
             entry.log_module === 'study' ? 'bg-blue-50 dark:bg-blue-950/30' :
             entry.log_module === 'task' ? 'bg-amber-50 dark:bg-amber-950/30' :
+            entry.log_module === 'mind' ? 'bg-violet-50 dark:bg-violet-950/30' :
             'bg-violet-50 dark:bg-violet-950/30'}`}
         >
           {entry.type === 'task' ? (entry.completed ? '✅' : '⏳') : (
-            entry.log_module === 'nutrition' ? (entry.food_meals.toLowerCase().includes('fruit') ? '🍎' : '🥗') :
-            entry.log_module === 'training' ? (entry.train_type?.toLowerCase().includes('run') ? '🏃' : '🏋️') :
+            entry.log_module === 'nutrition' ? (entry.food_meals?.toLowerCase()?.includes('fruit') ? '🍎' : '🥗') :
+            entry.log_module === 'training' ? (entry.train_type?.toLowerCase()?.includes('run') ? '🏃' : '🏋️') :
             entry.log_module === 'study' ? (entry.study_time && parseInt(entry.study_time) > STUDY_TIME_ADVANCED_THRESHOLD ? '🎓' : '📚') :
-            (entry.mood ? entry.mood : '🧠')
+            entry.log_module === 'mind' ? (MOODS.includes(entry.mood as Mood) ? entry.mood : '🧠') :
+            '🧠'
           )}
         </div>
 
@@ -289,6 +291,7 @@ export default function HistoryPage() {
               selectedEntry.log_module === 'training' ? 'bg-orange-500' :
               selectedEntry.log_module === 'study' ? 'bg-blue-500' :
               selectedEntry.log_module === 'task' ? 'bg-amber-500' :
+              selectedEntry.log_module === 'mind' ? 'bg-violet-500' :
               'bg-violet-500'}`} />
 
             <div className="pt-8 px-6 pb-8 max-h-[90vh] overflow-y-auto custom-scrollbar">
@@ -299,17 +302,19 @@ export default function HistoryPage() {
                 <h2 className="text-2xl font-black text-slate-800 dark:text-slate-100 flex items-center gap-3">
                   <span className="text-4xl drop-shadow-sm">
                     {selectedEntry.type === 'task' ? (selectedEntry.completed ? '✅' : '⏳') : (
-                      selectedEntry.log_module === 'nutrition' ? (selectedEntry.food_meals.toLowerCase().includes('fruit') ? '🍎' : '🥗') :
-                      selectedEntry.log_module === 'training' ? (selectedEntry.train_type?.toLowerCase().includes('run') ? '🏃' : '🏋️') :
+                      selectedEntry.log_module === 'nutrition' ? (selectedEntry.food_meals?.toLowerCase()?.includes('fruit') ? '🍎' : '🥗') :
+                      selectedEntry.log_module === 'training' ? (selectedEntry.train_type?.toLowerCase()?.includes('run') ? '🏃' : '🏋️') :
                       selectedEntry.log_module === 'study' ? (selectedEntry.study_time && parseInt(selectedEntry.study_time) > STUDY_TIME_ADVANCED_THRESHOLD ? '🎓' : '📚') :
-                      (selectedEntry.mood ? selectedEntry.mood : '🧠')
+                      selectedEntry.log_module === 'mind' ? (MOODS.includes(selectedEntry.mood as Mood) ? selectedEntry.mood : '🧠') :
+                      '🧠'
                     )}
                   </span>
                   {selectedEntry.type === 'task' ? (isEditing ? 'Update Task' : selectedEntry.text) :
                     selectedEntry.log_module === 'nutrition' ? 'Nutrition' :
                     selectedEntry.log_module === 'training' ? 'Training' :
                     selectedEntry.log_module === 'study' ? 'Study session' :
-                    'Mind & Mood'
+                    selectedEntry.log_module === 'mind' ? 'Mind & Mood' :
+                    'Activity'
                   }
                 </h2>
               </div>

@@ -80,7 +80,7 @@ export interface Milestone {
 export interface GoalTaskLink {
   id: string;
   goal_id: string;
-  todo_id: string;
+  template_id: string;
 }
 
 export interface GoalWithDetails extends Goal {

@@ -4,64 +4,102 @@ import { useSettings } from '@/hooks/useSettings';
 import { useSupabaseContext } from '@/context/SupabaseContext';
 
 const SQL_SCHEMA = `
--- 1. Create the logs table
-CREATE TABLE IF NOT EXISTS daily_logs (
+-- Step 1a: Log entry anchor table
+CREATE TABLE IF NOT EXISTS daily_log_entries (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   date date NOT NULL DEFAULT CURRENT_DATE,
-  food_meals text,
-  food_notes text,
-  trained boolean DEFAULT false,
-  train_type text,
-  train_duration text,
-  train_notes text,
-  study_topic text,
-  study_time text,
-  study_notes text,
-  mood text,
-  stress_level integer DEFAULT 5,
-  mind_notes text,
-  log_module text, -- 'nutrition', 'training', 'study', or 'mind'
+  log_module text NOT NULL CHECK (log_module IN ('nutrition','training','study','mind')),
   created_at timestamp with time zone DEFAULT now()
 );
 
--- 2. Create the todos table
-CREATE TABLE IF NOT EXISTS todos (
+-- Step 1b: Module-specific tables
+CREATE TABLE IF NOT EXISTS log_nutrition (
+  entry_id uuid PRIMARY KEY REFERENCES daily_log_entries(id) ON DELETE CASCADE,
+  food_meals text,
+  food_notes text
+);
+
+CREATE TABLE IF NOT EXISTS log_training (
+  entry_id uuid PRIMARY KEY REFERENCES daily_log_entries(id) ON DELETE CASCADE,
+  trained boolean DEFAULT false,
+  train_type text,
+  train_duration text,
+  train_notes text
+);
+
+CREATE TABLE IF NOT EXISTS log_study (
+  entry_id uuid PRIMARY KEY REFERENCES daily_log_entries(id) ON DELETE CASCADE,
+  study_topic text,
+  study_time text,
+  study_notes text
+);
+
+CREATE TABLE IF NOT EXISTS log_mind (
+  entry_id uuid PRIMARY KEY REFERENCES daily_log_entries(id) ON DELETE CASCADE,
+  mood text,
+  stress_level integer DEFAULT 5,
+  mind_notes text
+);
+
+-- Step 1c: Todo templates (what the task is)
+CREATE TABLE IF NOT EXISTS todo_templates (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   created_at timestamp with time zone DEFAULT now(),
   text text NOT NULL,
-  completed boolean DEFAULT false,
-  priority text DEFAULT 'medium',
-  date date DEFAULT CURRENT_DATE,
-  due_date date,
   description text,
+  priority text DEFAULT 'medium',
+  due_date date,
   is_repetitive boolean DEFAULT false,
-  frequency text DEFAULT 'daily' -- 'daily', 'weekly', or 'monthly'
+  frequency text DEFAULT 'daily',
+  active boolean DEFAULT true
 );
 
--- Note: Run these if you already have the table:
--- ALTER TABLE todos ADD COLUMN IF NOT EXISTS is_repetitive boolean DEFAULT false;
--- ALTER TABLE todos ADD COLUMN IF NOT EXISTS frequency text DEFAULT 'daily';
+-- Step 1d: Todo instances (when / completion state)
+CREATE TABLE IF NOT EXISTS todo_instances (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  template_id uuid NOT NULL REFERENCES todo_templates(id) ON DELETE CASCADE,
+  scheduled_date date NOT NULL,
+  completed boolean DEFAULT false,
+  completed_at timestamp with time zone,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT todo_instances_template_date_unique UNIQUE (template_id, scheduled_date)
+);
 
 -- Enable RLS
-ALTER TABLE daily_logs ENABLE ROW LEVEL SECURITY;
-ALTER TABLE todos ENABLE ROW LEVEL SECURITY;
+ALTER TABLE daily_log_entries ENABLE ROW LEVEL SECURITY;
+ALTER TABLE log_nutrition     ENABLE ROW LEVEL SECURITY;
+ALTER TABLE log_training      ENABLE ROW LEVEL SECURITY;
+ALTER TABLE log_study         ENABLE ROW LEVEL SECURITY;
+ALTER TABLE log_mind          ENABLE ROW LEVEL SECURITY;
+ALTER TABLE todo_templates    ENABLE ROW LEVEL SECURITY;
+ALTER TABLE todo_instances    ENABLE ROW LEVEL SECURITY;
 
--- Policies for logs
-CREATE POLICY "Allow anon select logs" ON daily_logs FOR SELECT USING (true);
-CREATE POLICY "Allow anon insert logs" ON daily_logs FOR INSERT WITH CHECK (true);
-CREATE POLICY "Allow anon update logs" ON daily_logs FOR UPDATE USING (true);
+-- Policies
+CREATE POLICY "anon select daily_log_entries" ON daily_log_entries FOR SELECT USING (true);
+CREATE POLICY "anon insert daily_log_entries" ON daily_log_entries FOR INSERT WITH CHECK (true);
+CREATE POLICY "anon update daily_log_entries" ON daily_log_entries FOR UPDATE USING (true);
+CREATE POLICY "anon delete daily_log_entries" ON daily_log_entries FOR DELETE USING (true);
 
--- Policies for todos
-CREATE POLICY "Allow anon select todos" ON todos FOR SELECT USING (true);
-CREATE POLICY "Allow anon insert todos" ON todos FOR INSERT WITH CHECK (true);
-CREATE POLICY "Allow anon update todos" ON todos FOR UPDATE USING (true);
-CREATE POLICY "Allow anon delete todos" ON todos FOR DELETE USING (true);
+CREATE POLICY "anon all log_nutrition" ON log_nutrition FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "anon all log_training"  ON log_training  FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "anon all log_study"     ON log_study     FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "anon all log_mind"      ON log_mind      FOR ALL USING (true) WITH CHECK (true);
+
+CREATE POLICY "anon select todo_templates" ON todo_templates FOR SELECT USING (true);
+CREATE POLICY "anon insert todo_templates" ON todo_templates FOR INSERT WITH CHECK (true);
+CREATE POLICY "anon update todo_templates" ON todo_templates FOR UPDATE USING (true);
+CREATE POLICY "anon delete todo_templates" ON todo_templates FOR DELETE USING (true);
+
+CREATE POLICY "anon select todo_instances" ON todo_instances FOR SELECT USING (true);
+CREATE POLICY "anon insert todo_instances" ON todo_instances FOR INSERT WITH CHECK (true);
+CREATE POLICY "anon update todo_instances" ON todo_instances FOR UPDATE USING (true);
+CREATE POLICY "anon delete todo_instances" ON todo_instances FOR DELETE USING (true);
 `.trim();
 
 const SQL_MIGRATION_REPETITIVE = `
--- Run these if you already have the 'todos' table to enable repetitive tasks:
-ALTER TABLE todos ADD COLUMN IF NOT EXISTS is_repetitive boolean DEFAULT false;
-ALTER TABLE todos ADD COLUMN IF NOT EXISTS frequency text DEFAULT 'daily';
+-- No migration needed for repetitive tasks.
+-- The new schema (todo_templates + todo_instances) supports them natively.
+-- is_repetitive and frequency are columns on todo_templates.
 `.trim();
 
 const SQL_APP_SETTINGS = `
@@ -111,13 +149,13 @@ CREATE TABLE IF NOT EXISTS milestones (
 CREATE TABLE IF NOT EXISTS goal_task_links (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   goal_id uuid NOT NULL REFERENCES goals(id) ON DELETE CASCADE,
-  todo_id uuid NOT NULL REFERENCES todos(id) ON DELETE CASCADE,
-  CONSTRAINT goal_task_links_unique UNIQUE (goal_id, todo_id)
+  template_id uuid NOT NULL REFERENCES todo_templates(id) ON DELETE CASCADE,
+  CONSTRAINT goal_task_links_unique UNIQUE (goal_id, template_id)
 );
 
 CREATE INDEX IF NOT EXISTS milestones_goal_id_idx ON milestones(goal_id);
 CREATE INDEX IF NOT EXISTS goal_task_links_goal_id_idx ON goal_task_links(goal_id);
-CREATE INDEX IF NOT EXISTS goal_task_links_todo_id_idx ON goal_task_links(todo_id);
+CREATE INDEX IF NOT EXISTS goal_task_links_template_id_idx ON goal_task_links(template_id);
 
 -- Enable RLS
 ALTER TABLE goals ENABLE ROW LEVEL SECURITY;
@@ -151,9 +189,9 @@ CREATE TABLE IF NOT EXISTS tags (
 
 -- 8. Create todo_tags (many-to-many)
 CREATE TABLE IF NOT EXISTS todo_tags (
-  todo_id uuid REFERENCES todos(id) ON DELETE CASCADE,
+  template_id uuid REFERENCES todo_templates(id) ON DELETE CASCADE,
   tag_id uuid REFERENCES tags(id) ON DELETE CASCADE,
-  PRIMARY KEY (todo_id, tag_id)
+  PRIMARY KEY (template_id, tag_id)
 );
 
 -- Enable RLS
@@ -184,7 +222,7 @@ const STATUS_ICONS: Record<string, string> = {
 };
 
 const STATUS_MESSAGES: Record<string, string> = {
-  connected: 'Connected to Supabase — All tables (daily_logs, todos, goals, tags) are reachable.',
+  connected: 'Connected to Supabase — All tables (daily_log_entries, todo_templates, goals, tags) are reachable.',
   disconnected: 'Not connected. Check your credentials or run the SQL below.',
   checking: 'Checking connection…',
 };
@@ -351,7 +389,7 @@ export default function SettingsPage() {
             </div>
           </div>
           <p className="text-[10px] text-slate-400 leading-relaxed font-medium mt-2 px-1">
-            Creates <code className="bg-slate-100 dark:bg-slate-800 px-1 rounded text-slate-500">daily_logs</code> and <code className="bg-slate-100 dark:bg-slate-800 px-1 rounded text-slate-500">todos</code> tables with RLS policies.
+            Creates <code className="bg-slate-100 dark:bg-slate-800 px-1 rounded text-slate-500">daily_log_entries</code>, <code className="bg-slate-100 dark:bg-slate-800 px-1 rounded text-slate-500">log_*</code>, <code className="bg-slate-100 dark:bg-slate-800 px-1 rounded text-slate-500">todo_templates</code> and <code className="bg-slate-100 dark:bg-slate-800 px-1 rounded text-slate-500">todo_instances</code> tables with RLS policies.
           </p>
         </div>
 

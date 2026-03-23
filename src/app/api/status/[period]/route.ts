@@ -37,6 +37,35 @@ const getDateRange = (period: string, clientLocalStr?: string | null) => {
   return { start: localStr, end: localStr };
 };
 
+const LOG_SELECT = `
+  id, date, log_module, created_at,
+  log_nutrition(food_meals, food_notes),
+  log_training(trained, train_type, train_duration, train_notes),
+  log_study(study_topic, study_time, study_notes),
+  log_mind(mood, stress_level, mind_notes)
+`.trim();
+
+function flattenEntry(entry: any) {
+  return {
+    id: entry.id,
+    date: entry.date,
+    log_module: entry.log_module,
+    created_at: entry.created_at,
+    food_meals: entry.log_nutrition?.food_meals || '',
+    food_notes: entry.log_nutrition?.food_notes || '',
+    trained: entry.log_training?.trained ?? false,
+    train_type: entry.log_training?.train_type || '',
+    train_duration: entry.log_training?.train_duration || '',
+    train_notes: entry.log_training?.train_notes || '',
+    study_topic: entry.log_study?.study_topic || '',
+    study_time: entry.log_study?.study_time || '',
+    study_notes: entry.log_study?.study_notes || '',
+    mood: entry.log_mind?.mood || '',
+    stress_level: entry.log_mind?.stress_level ?? 5,
+    mind_notes: entry.log_mind?.mind_notes || '',
+  };
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ period: string }> }
@@ -48,43 +77,52 @@ export async function GET(
 
   const { start, end } = getDateRange(period, localDate);
 
-  const { data: logs, error: logError } = await supabase
-    .from('daily_logs')
-    .select()
-    .gte('date', start)
-    .lte('date', end);
+  const [logsRes, todosRes] = await Promise.all([
+    supabase
+      .from('daily_log_entries')
+      .select(LOG_SELECT)
+      .gte('date', start)
+      .lte('date', end),
+    supabase
+      .from('todo_instances')
+      .select(`
+        id, scheduled_date, completed,
+        template:todo_templates!inner(
+          id, text, description, priority, due_date, is_repetitive, frequency, created_at
+        )
+      `)
+      .gte('scheduled_date', start)
+      .lte('scheduled_date', end),
+  ]);
 
-  const { data: todos, error: todoError } = await supabase
-    .from('todos')
-    .select()
-    .gte('date', start)
-    .lte('date', end);
-
-  if (logError || todoError) {
-    return NextResponse.json({ 
-      success: false, 
-      error: logError?.message || todoError?.message 
+  if (logsRes.error || todosRes.error) {
+    return NextResponse.json({
+      success: false,
+      error: logsRes.error?.message || todosRes.error?.message,
     }, { status: 500 });
   }
 
-  if (logs) {
-    logs.forEach((log: any) => {
-      if (!log.log_module) {
-        if (log.food_meals) log.log_module = 'nutrition';
-        else if (log.study_topic) log.log_module = 'study';
-        else if (log.mood || log.mind_notes) log.log_module = 'mind';
-        else log.log_module = 'training';
-      }
-    });
-  }
-
-  let filteredLogs = logs || [];
+  let logs = (logsRes.data || []).map(flattenEntry);
   if (module) {
-    filteredLogs = filteredLogs.filter((l: any) => l.log_module === module);
+    logs = logs.filter((l) => l.log_module === module);
   }
 
-  return NextResponse.json({ 
-    success: true, 
-    data: { logs: filteredLogs, todos: todos || [], period, range: { start, end } } 
+  const todos = (todosRes.data || []).map((inst: any) => ({
+    id: inst.template.id,
+    text: inst.template.text,
+    description: inst.template.description,
+    priority: inst.template.priority,
+    due_date: inst.template.due_date,
+    is_repetitive: inst.template.is_repetitive,
+    frequency: inst.template.frequency,
+    created_at: inst.template.created_at,
+    completed: inst.completed,
+    date: inst.scheduled_date,
+    tags: [],
+  }));
+
+  return NextResponse.json({
+    success: true,
+    data: { logs, todos, period, range: { start, end } },
   });
 }

@@ -41,7 +41,7 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
     setStatus('checking');
     try {
       const { error } = await supabase
-        .from('daily_logs')
+        .from('daily_log_entries')
         .select('id')
         .limit(1);
       setStatus(error ? 'disconnected' : 'connected');

@@ -1,7 +1,8 @@
 'use client';
 
 import React from 'react';
-import { MOOD_LABELS, Mood } from '@/lib/types';
+import { MOOD_LABELS, Mood, MOODS } from '@/lib/types';
+import { STUDY_TIME_ADVANCED_THRESHOLD } from '@/lib/constants';
 import { formatTime } from '@/lib/utils';
 
 interface TimelineEntryProps {
@@ -24,6 +25,7 @@ export const TimelineEntry: React.FC<TimelineEntryProps> = ({
           entry.log_module === 'training' ? 'bg-orange-400' :
           entry.log_module === 'study' ? 'bg-blue-400' :
           entry.log_module === 'task' ? 'bg-sky-400' :
+          entry.log_module === 'mind' ? 'bg-violet-400' :
           'bg-violet-400'}`}
       />
 
@@ -31,12 +33,22 @@ export const TimelineEntry: React.FC<TimelineEntryProps> = ({
         onClick={() => onClick(entry)}
         className="card cursor-pointer hover:shadow-md dark:hover:border-slate-700 transition-all duration-300 transform hover:-translate-x-1 group-hover:border-slate-200 dark:group-hover:border-slate-700/50 relative overflow-hidden bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-5 rounded-2xl shadow-sm"
       >
-        <div className="flex items-center justify-between mb-3">
-          <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 group-hover:text-brand-500 transition-colors">
-            {entry.log_module}
-          </span>
+        <div className="flex items-center justify-between mb-3 gap-4">
+          <div className="flex items-center gap-2.5">
+            <span className="text-xl drop-shadow-sm flex-shrink-0">
+              {entry.log_module === 'nutrition' ? (entry.food_meals?.toLowerCase()?.includes('fruit') ? '🍎' : '🥗') :
+                entry.log_module === 'training' ? (entry.train_type?.toLowerCase()?.includes('run') ? '🏃' : '🏋️') :
+                entry.log_module === 'study' ? (entry.study_time && parseInt(entry.study_time) > STUDY_TIME_ADVANCED_THRESHOLD ? '🎓' : '📚') :
+                entry.log_module === 'task' ? (entry.completed ? '✅' : '⏳') :
+                entry.log_module === 'mind' ? (MOODS.includes(entry.mood as Mood) ? entry.mood : '🧠') :
+                '🧠'}
+            </span>
+            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 group-hover:text-brand-500 transition-colors">
+              {entry.log_module}
+            </span>
+          </div>
           <div className="flex items-center gap-3">
-            <span className="text-[10px] font-bold text-slate-400 bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-full group-hover:bg-slate-200 dark:group-hover:bg-slate-700 transition-colors">
+            <span className="text-[10px] font-bold text-slate-400 bg-slate-50 dark:bg-slate-800/50 px-3 py-1 rounded-full group-hover:bg-slate-100 dark:group-hover:bg-slate-800 transition-colors">
               {entry.created_at ? formatTime(entry.created_at) : ''}
             </span>
           </div>
@@ -69,8 +81,8 @@ export const TimelineEntry: React.FC<TimelineEntryProps> = ({
 
         {entry.log_module === 'mind' && (
           <div className="animate-fade-in pr-12">
-            <div className="flex items-center gap-3">
-              <span className="text-3xl drop-shadow-sm">{entry.mood}</span>
+            <div className="flex items-center gap-3 flex-col">
+              <span className="text-sm drop-shadow-sm">{entry.mood}</span>
               <div>
                 <p className="font-bold text-slate-700 dark:text-slate-200 text-sm leading-none">
                   {entry.mood ? MOOD_LABELS[entry.mood as Mood] : 'Mood Log'}

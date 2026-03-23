@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { STUDY_TIME_ADVANCED_THRESHOLD } from '@/lib/constants';
+import { MOODS, Mood } from '@/lib/types';
 import { formatTime } from '@/lib/utils';
 import { 
   NutritionContent, 
@@ -75,6 +76,8 @@ export const EntryDetailModal: React.FC<EntryDetailModalProps> = ({
           selectedEntry.log_module === 'nutrition' ? 'bg-emerald-500' :
           selectedEntry.log_module === 'training' ? 'bg-orange-500' :
           selectedEntry.log_module === 'study' ? 'bg-blue-500' :
+          selectedEntry.log_module === 'task' ? 'bg-amber-500' :
+          selectedEntry.log_module === 'mind' ? 'bg-violet-500' :
           'bg-violet-500'}`} />
 
         <div className="pt-8 px-6 pb-8 max-h-[90vh] overflow-y-auto custom-scrollbar">
@@ -84,15 +87,17 @@ export const EntryDetailModal: React.FC<EntryDetailModalProps> = ({
             </span>
             <h2 className="text-2xl font-black text-slate-800 dark:text-slate-100 flex items-center gap-3">
               <span className="text-4xl drop-shadow-sm">
-                {selectedEntry.log_module === 'nutrition' ? (selectedEntry.food_meals.toLowerCase().includes('fruit') ? '🍎' : '🥗') :
-                  selectedEntry.log_module === 'training' ? (selectedEntry.train_type?.toLowerCase().includes('run') ? '🏃' : '🏋️') :
+                {selectedEntry.log_module === 'nutrition' ? (selectedEntry.food_meals?.toLowerCase()?.includes('fruit') ? '🍎' : '🥗') :
+                  selectedEntry.log_module === 'training' ? (selectedEntry.train_type?.toLowerCase()?.includes('run') ? '🏃' : '🏋️') :
                   selectedEntry.log_module === 'study' ? (selectedEntry.study_time && parseInt(selectedEntry.study_time) > STUDY_TIME_ADVANCED_THRESHOLD ? '🎓' : '📚') :
-                  (selectedEntry.mood ? selectedEntry.mood : '🧠')}
+                  selectedEntry.log_module === 'mind' ? (MOODS.includes(selectedEntry.mood as Mood) ? selectedEntry.mood : '🧠') :
+                  '🧠'}
               </span>
               {selectedEntry.log_module === 'nutrition' ? 'Nutrition' :
                 selectedEntry.log_module === 'training' ? 'Training' :
                 selectedEntry.log_module === 'study' ? 'Study session' :
-                'Mind & Mood'
+                selectedEntry.log_module === 'mind' ? 'Mind & Mood' :
+                'Activity'
               }
             </h2>
           </div>

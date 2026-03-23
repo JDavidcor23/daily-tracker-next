@@ -8,7 +8,7 @@ export async function POST(request: Request) {
 
     const { data, error } = await supabase
       .from('goal_task_links')
-      .insert([{ goal_id, todo_id }])
+      .insert([{ goal_id, template_id: todo_id }])
       .select()
       .single();
 
@@ -31,7 +31,7 @@ export async function DELETE(request: Request) {
       .from('goal_task_links')
       .delete()
       .eq('goal_id', goal_id)
-      .eq('todo_id', todo_id);
+      .eq('template_id', todo_id);
 
     if (error) {
       return NextResponse.json({ success: false, error: error.message }, { status: 500 });
