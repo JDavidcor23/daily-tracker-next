@@ -140,6 +140,37 @@ CREATE POLICY "Allow anon insert goal_task_links" ON goal_task_links FOR INSERT 
 CREATE POLICY "Allow anon delete goal_task_links" ON goal_task_links FOR DELETE USING (true);
 `.trim();
 
+const SQL_TAGS = `
+-- 7. Create tags table
+CREATE TABLE IF NOT EXISTS tags (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  name text NOT NULL UNIQUE,
+  color text NOT NULL DEFAULT '#6366f1',
+  created_at timestamp with time zone DEFAULT now()
+);
+
+-- 8. Create todo_tags (many-to-many)
+CREATE TABLE IF NOT EXISTS todo_tags (
+  todo_id uuid REFERENCES todos(id) ON DELETE CASCADE,
+  tag_id uuid REFERENCES tags(id) ON DELETE CASCADE,
+  PRIMARY KEY (todo_id, tag_id)
+);
+
+-- Enable RLS
+ALTER TABLE tags ENABLE ROW LEVEL SECURITY;
+ALTER TABLE todo_tags ENABLE ROW LEVEL SECURITY;
+
+-- Policies
+CREATE POLICY "Allow anon select tags" ON tags FOR SELECT USING (true);
+CREATE POLICY "Allow anon insert tags" ON tags FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow anon update tags" ON tags FOR UPDATE USING (true);
+CREATE POLICY "Allow anon delete tags" ON tags FOR DELETE USING (true);
+
+CREATE POLICY "Allow anon select todo_tags" ON todo_tags FOR SELECT USING (true);
+CREATE POLICY "Allow anon insert todo_tags" ON todo_tags FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow anon delete todo_tags" ON todo_tags FOR DELETE USING (true);
+`.trim();
+
 const STATUS_COLORS: Record<string, string> = {
   connected: 'bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-950/20 dark:border-emerald-900/40 dark:text-emerald-400',
   disconnected: 'bg-rose-50 border-rose-200 text-rose-700 dark:bg-rose-950/20 dark:border-rose-900/40 dark:text-rose-400',
@@ -153,7 +184,7 @@ const STATUS_ICONS: Record<string, string> = {
 };
 
 const STATUS_MESSAGES: Record<string, string> = {
-  connected: 'Connected to Supabase — All tables (daily_logs, todos, goals) are reachable.',
+  connected: 'Connected to Supabase — All tables (daily_logs, todos, goals, tags) are reachable.',
   disconnected: 'Not connected. Check your credentials or run the SQL below.',
   checking: 'Checking connection…',
 };
@@ -168,6 +199,7 @@ export default function SettingsPage() {
     copied2,
     copied3,
     copied4,
+    copied5,
     gfitConnected,
     gfitLoading,
     handleConnectGoogleFit,
@@ -385,7 +417,29 @@ export default function SettingsPage() {
             </div>
           </div>
           <p className="text-[10px] text-slate-400 leading-relaxed font-medium mt-2 px-1">
-            Builds the <code className="bg-slate-100 dark:bg-slate-800 px-1 rounded text-slate-500">goals</code>, <code className="bg-slate-100 dark:bg-slate-800 px-1 rounded text-slate-500">milestones</code>, and <code className="bg-slate-100 dark:bg-slate-800 px-1 rounded text-slate-500">goal_task_links</code> tables with RLS and indexes.
+            Builds the <code className="bg-slate-100 dark:bg-slate-800 px-1 rounded text-slate-500">goals</code>, <code className="bg-slate-100 dark:bg-slate-800 px-1 rounded text-slate-500">milestones</code>, and <code className="bg-slate-100 dark:bg-slate-800 px-1 rounded text-slate-500">goal_task_links</code> tables.
+          </p>
+        </div>
+
+        {/* Tags schema */}
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 px-1">Step 4 — Task Tagging System</p>
+          <div className="relative group">
+            <div className="absolute top-3 right-3 z-10">
+              <button
+                onClick={() => handleCopySQL(SQL_TAGS, 5)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all shadow-lg
+                  ${copied5 ? 'bg-emerald-500 text-white' : 'bg-slate-800/80 text-white backdrop-blur-md hover:bg-slate-700'}`}
+              >
+                {copied5 ? '✅ Done' : <><span>📋</span> Copy</>}
+              </button>
+            </div>
+            <div className="rounded-2xl bg-slate-900 text-indigo-400 p-6 font-mono text-[10px] sm:text-xs overflow-x-auto shadow-inner ring-1 ring-slate-800 max-h-[260px] custom-scrollbar">
+              <pre className="whitespace-pre">{SQL_TAGS}</pre>
+            </div>
+          </div>
+          <p className="text-[10px] text-slate-400 leading-relaxed font-medium mt-2 px-1">
+            Creates <code className="bg-slate-100 dark:bg-slate-800 px-1 rounded text-slate-500">tags</code> and <code className="bg-slate-100 dark:bg-slate-800 px-1 rounded text-slate-500">todo_tags</code> tables for the new tagging feature.
           </p>
         </div>
       </div>
@@ -398,6 +452,8 @@ export default function SettingsPage() {
           <span>💪 Health Sync</span>
           <span className="w-1 h-1 bg-slate-300 rounded-full" />
           <span>📈 Progress</span>
+          <span className="w-1 h-1 bg-slate-300 rounded-full" />
+          <span>🏷️ Smart Tags</span>
           <span className="w-1 h-1 bg-slate-300 rounded-full" />
           <span>✅ Task Core</span>
         </div>

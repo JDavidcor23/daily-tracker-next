@@ -24,9 +24,10 @@ Track your daily nutrition, training, study, mood, fitness, and tasks — all in
 - **📚 Study** — Log study sessions with duration
 - **🧠 Mind** — Mood and mental wellness tracking
 - **💪 Fitness** — Syncs with **Google Fit** (steps, active minutes, calories)
-- **✅ Todos** — Task management with CRUD
+- **✅ Todos** — Task management with CRUD and **🔍 Real-time Search**
+- **🏷️ Smart Tags** — Categorize tasks with custom names and vibrant colors
 - **📥 Reports** — Download daily/weekly PDF reports via jsPDF
-- **⚙️ Settings** — Google Fit connection management
+- **⚙️ Settings** — Suppabase connection & Google Fit integration management
 
 ## Project Structure
 
@@ -104,6 +105,10 @@ Supabase handles persistence. Make sure your Supabase project has the following 
 - `study_logs`
 - `mind_logs`
 - `todos`
+- `tags` (for task categorization)
+- `todo_tags` (many-to-many relationship)
+- `goals` (life goals tracking)
+- `milestones` (goal progression)
 
 ## Google Fit Integration
 

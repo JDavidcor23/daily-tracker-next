@@ -27,6 +27,13 @@ export interface DailyLog {
 
 export type Priority = 'low' | 'medium' | 'high';
 
+export interface Tag {
+  id: string;
+  name: string;
+  color: string;
+  created_at?: string;
+}
+
 export interface Todo {
   id: string;
   created_at?: string;
@@ -38,6 +45,7 @@ export interface Todo {
   description?: string;
   is_repetitive: boolean;
   frequency?: 'daily' | 'weekly' | 'monthly';
+  tags?: Tag[];
 }
 
 export type GoalLifeArea = 'profesional' | 'salud_cuerpo' | 'salud_mental' | 'financiero';

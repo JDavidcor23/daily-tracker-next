@@ -1,4 +1,4 @@
-import { DailyLog, Todo, GoogleFitData, GoogleFitStatus, Goal, GoalSummary, Milestone, GoalTaskLink, GoalWithDetails } from './types';
+import { DailyLog, Todo, GoogleFitData, GoogleFitStatus, Goal, GoalSummary, Milestone, GoalTaskLink, GoalWithDetails, Tag } from './types';
 
 async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   // In Next.js, we can call our own API routes using relative paths or full URLs.
@@ -97,6 +97,21 @@ export const api = {
     unlink: (goalId: string, todoId: string) => request<void>('/api/goal-task-links', { 
       method: 'DELETE', 
       body: JSON.stringify({ goal_id: goalId, todo_id: todoId }) 
+    }),
+  },
+  // Tags
+  tags: {
+    fetch: () => request<Tag[]>('/api/tags'),
+    create: (tag: Omit<Tag, 'id' | 'created_at'>) => request<Tag>('/api/tags', {
+      method: 'POST',
+      body: JSON.stringify(tag),
+    }),
+    update: (id: string, updates: Partial<Tag>) => request<Tag>(`/api/tags/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(updates),
+    }),
+    delete: (id: string) => request<void>(`/api/tags/${id}`, {
+      method: 'DELETE',
     }),
   },
 };

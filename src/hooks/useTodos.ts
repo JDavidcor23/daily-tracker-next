@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import { api } from '@/lib/api';
-import { Todo, Priority } from '@/lib/types';
+import { Todo, Priority, Tag } from '@/lib/types';
 import { PRIORITY_WEIGHTS, TODO_FALLBACK_SORT_DATE } from '@/lib/constants';
 
 export type TodoTab = 'all' | 'today' | 'tomorrow' | 'week' | 'month' | 'overdue' | 'none' | 'custom';
@@ -53,6 +53,10 @@ export function useTodos() {
   const [rangeEnd, setRangeEnd] = useState(getTodayStr);
   const [isRepetitive, setIsRepetitive] = useState(false);
   const [frequency, setFrequency] = useState<'daily' | 'weekly' | 'monthly'>('daily');
+  const [tags, setTags] = useState<Tag[]>([]);
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
+  const [editTagIds, setEditTagIds] = useState<string[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const today = getTodayStr();
   const tomorrow = getTomorrowStr();
@@ -71,9 +75,19 @@ export function useTodos() {
     }
   }, []);
 
+  const fetchTags = useCallback(async () => {
+    try {
+      const data = await api.tags.fetch();
+      setTags(data);
+    } catch (error: any) {
+      console.error('Error loading tags:', error);
+    }
+  }, []);
+
   useEffect(() => {
     fetchTodos();
-  }, [fetchTodos]);
+    fetchTags();
+  }, [fetchTodos, fetchTags]);
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -88,7 +102,8 @@ export function useTodos() {
       date: getTodayStr(),
       is_repetitive: isRepetitive,
       frequency: isRepetitive ? frequency : undefined,
-    };
+      tagIds: selectedTagIds
+    } as any;
 
     try {
       await api.createTodo(payload);
@@ -98,6 +113,7 @@ export function useTodos() {
       setPriority('medium');
       setIsRepetitive(false);
       setFrequency('daily');
+      setSelectedTagIds([]);
       fetchTodos();
       toast.success('Task added successfully');
     } catch (error: any) {
@@ -161,7 +177,8 @@ export function useTodos() {
         priority: editPriority,
         is_repetitive: selectedTodo.is_repetitive,
         frequency: selectedTodo.frequency,
-      };
+        tagIds: editTagIds
+      } as any;
       
       await api.updateTodo(selectedTodo.id, updates);
       fetchTodos();
@@ -177,10 +194,12 @@ export function useTodos() {
   };
 
   const startEditing = (todo: Todo) => {
+    setSelectedTodo(todo);
     setEditText(todo.text);
     setEditDescription(todo.description || '');
     setEditDueDate(todo.due_date || '');
     setEditPriority(todo.priority);
+    setEditTagIds(todo.tags?.map(t => t.id) || []);
     setIsEditing(true);
   };
 
@@ -245,7 +264,8 @@ export function useTodos() {
       }
       
       // Standard filtering
-      return matchesTab(t, activeTab);
+      const matchesSearch = t.text.toLowerCase().includes(searchQuery.toLowerCase());
+      return matchesTab(t, activeTab) && matchesSearch;
     })
     .sort((a, b) => {
       // 1. Completion status (uncompleted first)
@@ -288,5 +308,13 @@ export function useTodos() {
     deleteTodo,
     getFilteredCount,
     filteredTodos,
+    tags,
+    fetchTags,
+    selectedTagIds,
+    setSelectedTagIds,
+    editTagIds,
+    setEditTagIds,
+    searchQuery,
+    setSearchQuery,
   };
 }

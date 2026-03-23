@@ -2,8 +2,10 @@
 
 import { useTodos } from '@/hooks/useTodos';
 import type { TodoTab } from '@/hooks/useTodos';
-import { Priority } from '@/lib/types';
+import { Priority, Tag } from '@/lib/types';
 import { TODO_DESCRIPTION_PREVIEW_LENGTH } from '@/lib/constants';
+import TagsManager from '@/components/TagsManager';
+import { useState } from 'react';
 
 const PRIORITY_COLORS: Record<Priority, string> = {
   low: 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400',
@@ -80,6 +82,19 @@ function TodoItem({ todo, onSelect, onToggle, onEdit, onDelete }: {
               🔁 {todo.frequency || 'Daily'}
             </span>
           )}
+          {todo.tags && todo.tags.length > 0 && (
+            <div className="flex gap-1 overflow-x-auto no-scrollbar">
+              {todo.tags.map((tag: Tag) => (
+                <span 
+                  key={tag.id}
+                  className="text-[8px] font-black uppercase tracking-tighter px-1.5 py-0.5 rounded-md text-white whitespace-nowrap"
+                  style={{ backgroundColor: tag.color }}
+                >
+                  {tag.name}
+                </span>
+              ))}
+            </div>
+          )}
           {todo.description && (
             <span className="text-[9px] text-slate-400 dark:text-slate-500 font-bold truncate italic">
               {todo.description.substring(0, TODO_DESCRIPTION_PREVIEW_LENGTH)}{todo.description.length > TODO_DESCRIPTION_PREVIEW_LENGTH ? '...' : ''}
@@ -143,7 +158,25 @@ export default function TodoPage() {
     deleteTodo,
     getFilteredCount,
     filteredTodos,
+    tags,
+    fetchTags,
+    selectedTagIds,
+    setSelectedTagIds,
+    editTagIds,
+    setEditTagIds,
+    searchQuery,
+    setSearchQuery,
   } = useTodos();
+
+  const [showTagsManager, setShowTagsManager] = useState(false);
+
+  const toggleTagSelection = (tagId: string, isEdit: boolean = false) => {
+    if (isEdit) {
+      setEditTagIds(prev => prev.includes(tagId) ? prev.filter(id => id !== tagId) : [...prev, tagId]);
+    } else {
+      setSelectedTagIds(prev => prev.includes(tagId) ? prev.filter(id => id !== tagId) : [...prev, tagId]);
+    }
+  };
 
   return (
     <div className="px-4 py-8 space-y-10 max-w-4xl mx-auto font-sans animate-fade-in">
@@ -152,7 +185,15 @@ export default function TodoPage() {
           <h1 className="text-2xl sm:text-3xl font-black text-slate-800 dark:text-slate-100 tracking-tight">Tasks & Reminders</h1>
           <p className="text-sm text-slate-500 font-medium font-sans uppercase tracking-tight">Keep track of what you need to do</p>
         </div>
-        {loading && <div className="animate-spin text-2xl h-8 w-8 flex items-center justify-center">⏳</div>}
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setShowTagsManager(true)}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 text-[10px] font-black uppercase tracking-widest border border-indigo-100 dark:border-indigo-900/30 hover:bg-indigo-100 transition-colors"
+          >
+            <span>🏷️</span> Tags
+          </button>
+          {loading && <div className="animate-spin text-2xl h-8 w-8 flex items-center justify-center">⏳</div>}
+        </div>
       </div>
 
       <form onSubmit={handleAdd} className="card p-6 space-y-4 shadow-xl border-brand-100 dark:border-brand-900/10">
@@ -229,6 +270,31 @@ export default function TodoPage() {
               className="input-field min-h-[100px] resize-none"
             />
           </div>
+
+          <div className="md:col-span-2">
+            <label className="label">Assign Tags</label>
+            {tags.length === 0 ? (
+               <p className="text-[10px] text-slate-400 italic">No tags created. Create some using the "Tags" button above.</p>
+            ) : (
+              <div className="flex flex-wrap gap-2 pt-2">
+                {tags.map(tag => (
+                  <button
+                    key={tag.id}
+                    type="button"
+                    onClick={() => toggleTagSelection(tag.id)}
+                    className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all border ${
+                      selectedTagIds.includes(tag.id)
+                        ? 'text-white border-transparent'
+                        : 'bg-white dark:bg-slate-900 text-slate-400 border-slate-100 dark:border-slate-800'
+                    }`}
+                    style={selectedTagIds.includes(tag.id) ? { backgroundColor: tag.color } : {}}
+                  >
+                    {tag.name}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="flex justify-end pt-2">
@@ -239,6 +305,31 @@ export default function TodoPage() {
       </form>
 
       <div className="flex flex-wrap items-center gap-2 overflow-x-auto pb-4 scrollbar-none sticky top-16 md:top-20 bg-slate-50/50 dark:bg-slate-950/50 backdrop-blur-xl z-20 -mx-4 px-4 py-4 mb-2">
+        <div className="w-full sm:w-64 relative group mb-0">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <svg className="h-4 w-4 text-slate-400 group-focus-within:text-brand-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </div>
+          <input
+            type="text"
+            placeholder="Search tasks..."
+            className="input-field py-2 pl-10 text-xs w-full bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 focus:border-brand-300 dark:focus:border-brand-700 shadow-sm"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-rose-500"
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          )}
+        </div>
+
         {TABS.map(tab => (
           <button
             key={tab.id}
@@ -412,11 +503,36 @@ export default function TodoPage() {
                            <option value="weekly">Weekly</option>
                            <option value="monthly">Monthly</option>
                         </select>
-                     )}
-                  </div>
+                      )}
+                   </div>
+ 
+                   <div className="border-t border-slate-100 dark:border-slate-800 pt-4">
+                      <label className="label">Update Tags</label>
+                      {tags.length === 0 ? (
+                        <p className="text-[10px] text-slate-400 italic">No tags created.</p>
+                      ) : (
+                        <div className="flex flex-wrap gap-2 pt-2">
+                          {tags.map(tag => (
+                            <button
+                              key={tag.id}
+                              type="button"
+                              onClick={() => toggleTagSelection(tag.id, true)}
+                              className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all border ${
+                                editTagIds.includes(tag.id)
+                                  ? 'text-white border-transparent shadow-lg'
+                                  : 'bg-white dark:bg-slate-900 text-slate-400 border-slate-100 dark:border-slate-800'
+                              }`}
+                              style={editTagIds.includes(tag.id) ? { backgroundColor: tag.color } : {}}
+                            >
+                              {tag.name}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                   </div>
 
-                  <div>
-                    <label className="label">Description</label>
+                   <div>
+                      <label className="label">Description</label>
                     <textarea
                       value={editDescription}
                       onChange={(e) => setEditDescription(e.target.value)}
@@ -514,6 +630,13 @@ export default function TodoPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {showTagsManager && (
+        <TagsManager 
+          onClose={() => setShowTagsManager(false)} 
+          onTagsUpdated={fetchTags}
+        />
       )}
     </div>
   );
