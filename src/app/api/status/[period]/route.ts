@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import supabase from '@/lib/supabase';
 
 const getDateRange = (period: string, clientLocalStr?: string | null) => {
@@ -25,7 +25,7 @@ const getDateRange = (period: string, clientLocalStr?: string | null) => {
 };
 
 export async function GET(
-  request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ period: string }> }
 ) {
   const { period } = await params;

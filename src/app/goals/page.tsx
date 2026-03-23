@@ -28,7 +28,8 @@ export default function GoalsPage() {
     handleToggleMilestone,
     handleDeleteMilestone,
     handleLinkTask,
-    handleUnlinkTask
+    handleUnlinkTask,
+    handleLinkMultipleTasks
   } = useGoals();
 
   const [activeArea, setActiveArea] = useState<FilterArea>('all');
@@ -230,6 +231,7 @@ export default function GoalsPage() {
           onDeleteMilestone={handleDeleteMilestone}
           onLinkTask={handleLinkTask}
           onUnlinkTask={handleUnlinkTask}
+          onLinkMultipleTasks={handleLinkMultipleTasks}
           onUpdateStatus={(id, status) => handleUpdateGoal(id, { status })}
         />
       )}

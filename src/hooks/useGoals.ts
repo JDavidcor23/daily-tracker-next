@@ -202,6 +202,27 @@ export function useGoals() {
     }
   };
 
+  const handleLinkMultipleTasks = async (goalId: string, todoIds: string[]) => {
+    try {
+      // Process sequential to avoid DB locks, or Promise.all if supported/safe
+      // For now, simple loop
+      for (const todoId of todoIds) {
+        await api.goalTaskLinks.link(goalId, todoId);
+      }
+      
+      const newTodos = allTodos.filter(t => todoIds.includes(t.id));
+      if (selectedGoal) {
+        setSelectedGoal({
+          ...selectedGoal,
+          linkedTodos: [...selectedGoal.linkedTodos, ...newTodos]
+        });
+      }
+      toast.success(`${todoIds.length} tasks linked`);
+    } catch (error: any) {
+      toast.error('Failed to link some tasks: ' + error.message);
+    }
+  };
+
   return {
     goals,
     allTodos,
@@ -221,6 +242,7 @@ export function useGoals() {
     handleToggleMilestone,
     handleDeleteMilestone,
     handleLinkTask,
-    handleUnlinkTask
+    handleUnlinkTask,
+    handleLinkMultipleTasks
   };
 }
