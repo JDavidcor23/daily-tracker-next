@@ -4,7 +4,7 @@ import supabase from '@/lib/supabase';
 export async function GET() {
   const { data, error } = await supabase
     .from('goals')
-    .select('*, milestones(id, completed)')
+    .select('*, milestones(id, title, due_date, completed, order_index)')
     .order('created_at', { ascending: false });
 
   if (error) {

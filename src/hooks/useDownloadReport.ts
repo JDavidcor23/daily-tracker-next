@@ -50,7 +50,18 @@ export function useDownloadReport() {
         console.warn('Google Fit fetch failed (ignored for report):', err);
       }
 
-      const reportData: ReportData = { logs, todos, fitness: fitnessData };
+      let goalsData: any[] = [];
+      try {
+        const goalsRes = await fetch('/api/goals');
+        const goalsJson = await goalsRes.json();
+        if (goalsJson.success && goalsJson.data) {
+          goalsData = goalsJson.data;
+        }
+      } catch (err) {
+        console.warn('Goals fetch failed (ignored for report):', err);
+      }
+
+      const reportData: ReportData = { logs, todos, fitness: fitnessData, goals: goalsData };
       generatePDFReport(period, reportData);
 
       toast.success('Report downloaded!', { id: loadingToast });

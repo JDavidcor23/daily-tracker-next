@@ -39,6 +39,17 @@ export const PDF_FOOTER_MARGIN_BOTTOM = 20;
 export const PDF_COL_DATE_WIDTH = 70;
 export const PDF_COL_CATEGORY_WIDTH = 70;
 export const PDF_COL_DETAILS_WIDTH = 150;
+export const PDF_SUBSECTION_INDENT = 20;
+export const PDF_SUBSECTION_GAP = 15;
+export const PDF_LEGEND_Y = 97;
+
+// PDF section header colors
+export const PDF_COLOR_SECTION_NUTRITION = '#10b981';
+export const PDF_COLOR_SECTION_TRAINING = '#3b82f6';
+export const PDF_COLOR_SECTION_STUDY = '#8b5cf6';
+export const PDF_COLOR_SECTION_MIND = '#ec4899';
+export const PDF_COLOR_SECTION_GOALS = '#6366f1';
+export const PDF_COLOR_SECTION_MILESTONES = '#7c3aed';
 
 // SVG icon size
 export const SVG_ICON_SIZE = 18;

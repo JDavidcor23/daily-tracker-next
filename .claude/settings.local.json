@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(find . -name \"tailwind.config.*\" -o -name \"postcss.config.*\" 2>/dev/null | head -5)"
+      "Bash(find . -name \"tailwind.config.*\" -o -name \"postcss.config.*\" 2>/dev/null | head -5)",
+      "Bash(find ./src -type f -name \"*.ts\" -o -name \"*.tsx\" 2>/dev/null | grep -v node_modules)",
+      "Bash(npx tsc:*)"
     ]
   }
 }

@@ -1,6 +1,6 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { DailyLog, Todo, MOOD_LABELS, Mood } from './types';
+import { DailyLog, Todo, MOOD_LABELS, Mood, LogModule } from './types';
 import {
   PDF_FONT_SIZE_TITLE,
   PDF_FONT_SIZE_SUBTITLE,
@@ -15,11 +15,37 @@ import {
   PDF_SEPARATOR_END_X,
   PDF_SECTION_GAP,
   PDF_FOOTER_MARGIN_BOTTOM,
-  PDF_COL_DATE_WIDTH,
-  PDF_COL_CATEGORY_WIDTH,
-  PDF_COL_DETAILS_WIDTH,
+  PDF_SUBSECTION_GAP,
+  PDF_LEGEND_Y,
   MINUTES_PER_HOUR,
+  LIFE_AREA_LABELS,
+  GOAL_STATUS_LABELS,
+  PDF_COLOR_SECTION_NUTRITION,
+  PDF_COLOR_SECTION_TRAINING,
+  PDF_COLOR_SECTION_STUDY,
+  PDF_COLOR_SECTION_MIND,
+  PDF_COLOR_SECTION_GOALS,
+  PDF_COLOR_SECTION_MILESTONES,
 } from './constants';
+
+interface MilestoneReport {
+  id: string;
+  title: string;
+  due_date: string;
+  completed: boolean;
+  order_index?: number;
+}
+
+interface GoalReportItem {
+  id: string;
+  title: string;
+  life_area: string;
+  description?: string;
+  due_date: string;
+  status: string;
+  progress: number;
+  milestones: MilestoneReport[];
+}
 
 export interface ReportData {
   logs: DailyLog[];
@@ -30,6 +56,36 @@ export interface ReportData {
     activeMinutes?: number;
     sleepMinutes?: number;
   } | null;
+  goals: GoalReportItem[];
+}
+
+const MODULE_CONFIG: Array<{
+  key: LogModule;
+  label: string;
+  color: string;
+}> = [
+  { key: 'nutrition', label: 'Nutrition',      color: PDF_COLOR_SECTION_NUTRITION },
+  { key: 'training',  label: 'Training',        color: PDF_COLOR_SECTION_TRAINING  },
+  { key: 'study',     label: 'Study',           color: PDF_COLOR_SECTION_STUDY     },
+  { key: 'mind',      label: 'Mental Health',   color: PDF_COLOR_SECTION_MIND      },
+];
+
+function formatDate(dateStr: string) {
+  return new Date(dateStr + 'T12:00:00').toLocaleDateString();
+}
+
+function drawSectionTitle(doc: jsPDF, text: string, y: number) {
+  doc.setFontSize(PDF_FONT_SIZE_SUBTITLE);
+  doc.setTextColor('#1e293b');
+  doc.text(text, PDF_MARGIN_HORIZONTAL, y + 10);
+  return y + 20;
+}
+
+function drawSubsectionTitle(doc: jsPDF, text: string, y: number) {
+  doc.setFontSize(PDF_FONT_SIZE_TABLE_MAIN);
+  doc.setTextColor('#475569');
+  doc.text(text, PDF_MARGIN_HORIZONTAL, y + 10);
+  return y + 18;
 }
 
 export function generatePDFReport(period: string, data: ReportData) {
@@ -49,29 +105,34 @@ export function generatePDFReport(period: string, data: ReportData) {
   doc.setDrawColor(226, 232, 240);
   doc.line(PDF_MARGIN_HORIZONTAL, PDF_SEPARATOR_Y, PDF_SEPARATOR_END_X, PDF_SEPARATOR_Y);
 
+  doc.setFontSize(PDF_FONT_SIZE_FOOTER);
+  doc.setTextColor('#94a3b8');
+  doc.text(
+    'Status symbols:  ✔ = Completed   |   X = Not done   |   - = Pending',
+    PDF_MARGIN_HORIZONTAL,
+    PDF_LEGEND_Y,
+  );
+
   let y = PDF_MARGIN_VERTICAL_START;
 
+  // ── Fitness & Health ─────────────────────────────────────────────────────
   if (data.fitness) {
     const sleepHours = Math.floor((data.fitness.sleepMinutes || 0) / MINUTES_PER_HOUR);
-    const sleepMins = (data.fitness.sleepMinutes || 0) % MINUTES_PER_HOUR;
-    const sleepStr = `${sleepHours}h ${sleepMins}m`;
+    const sleepMins  = (data.fitness.sleepMinutes || 0) % MINUTES_PER_HOUR;
 
-    doc.setFontSize(PDF_FONT_SIZE_SUBTITLE);
-    doc.setTextColor('#1e293b');
-    doc.text('Fitness & Health Overview', PDF_MARGIN_HORIZONTAL, y + 10);
-    y += 20;
+    y = drawSectionTitle(doc, 'Fitness & Health Overview', y);
 
     autoTable(doc, {
       startY: y,
-      head: [['Fitness & Health Metric', 'Value']],
+      head: [['Metric', 'Value']],
       body: [
-        ['Steps', data.fitness.steps?.toLocaleString() || '0'],
-        ['Calories Burned', (data.fitness.calories?.toLocaleString() || '0') + ' kcal'],
+        ['Steps',          data.fitness.steps?.toLocaleString() || '0'],
+        ['Calories Burned',(data.fitness.calories?.toLocaleString() || '0') + ' kcal'],
         ['Active Minutes', (data.fitness.activeMinutes || 0) + ' min'],
-        ['Sleep', sleepStr],
+        ['Sleep',          `${sleepHours}h ${sleepMins}m`],
       ],
       theme: 'grid',
-      headStyles: { fillColor: '#6366f1', textColor: '#ffffff', fontStyle: 'bold' },
+      headStyles: { fillColor: PDF_COLOR_SECTION_GOALS, textColor: '#ffffff', fontStyle: 'bold' },
       styles: { fontSize: PDF_FONT_SIZE_TABLE_MAIN, cellPadding: 8 },
       alternateRowStyles: { fillColor: '#f8fafc' },
       margin: { left: PDF_MARGIN_HORIZONTAL, right: PDF_MARGIN_HORIZONTAL },
@@ -80,6 +141,7 @@ export function generatePDFReport(period: string, data: ReportData) {
     y = doc.lastAutoTable.finalY + PDF_SECTION_GAP;
   }
 
+  // ── Tasks & Progress ─────────────────────────────────────────────────────
   if (data.todos.length > 0) {
     const todosByDate: Record<string, Todo[]> = {};
     [...data.todos]
@@ -91,20 +153,11 @@ export function generatePDFReport(period: string, data: ReportData) {
 
     const dates = Object.keys(todosByDate).sort();
 
-    doc.setFontSize(PDF_FONT_SIZE_SUBTITLE);
-    doc.setTextColor('#1e293b');
-    doc.text('Tasks & Progress', PDF_MARGIN_HORIZONTAL, y + 10);
-    y += 20;
+    y = drawSectionTitle(doc, 'Tasks & Progress', y);
 
     dates.forEach((dateString, idx) => {
-      const formattedDate = new Date(dateString + 'T12:00:00').toLocaleDateString();
-      
-      // Section title for each day if multi-day
       if (dates.length > 1) {
-        doc.setFontSize(PDF_FONT_SIZE_TABLE_MAIN);
-        doc.setTextColor('#475569');
-        doc.text(formattedDate, PDF_MARGIN_HORIZONTAL, y + 10);
-        y += 20;
+        y = drawSubsectionTitle(doc, new Date(dateString + 'T12:00:00').toLocaleDateString(), y);
       }
 
       autoTable(doc, {
@@ -115,17 +168,17 @@ export function generatePDFReport(period: string, data: ReportData) {
           t.description || '-',
           t.is_repetitive ? (t.frequency ? t.frequency.charAt(0).toUpperCase() + t.frequency.slice(1) : 'Daily') : 'Once',
           t.priority.charAt(0).toUpperCase() + t.priority.slice(1),
-          t.completed ? 'Done' : 'Pending',
+          t.completed ? '✔' : 'X',
         ]),
         theme: 'grid',
         headStyles: { fillColor: '#10b981', textColor: '#ffffff', fontStyle: 'bold' },
         styles: { fontSize: PDF_FONT_SIZE_TABLE_DETAIL, cellPadding: 6, overflow: 'linebreak' },
         columnStyles: {
-          0: { cellWidth: 120 }, // Task title
-          1: { cellWidth: 'auto' }, // Description
-          2: { cellWidth: 50 }, // Frequency
-          3: { cellWidth: 60 }, // Priority
-          4: { cellWidth: 50 }, // Status
+          0: { cellWidth: 120 },
+          1: { cellWidth: 'auto' },
+          2: { cellWidth: 50 },
+          3: { cellWidth: 60 },
+          4: { cellWidth: 50 },
         },
         alternateRowStyles: { fillColor: '#f8fafc' },
         margin: { left: PDF_MARGIN_HORIZONTAL, right: PDF_MARGIN_HORIZONTAL },
@@ -140,66 +193,152 @@ export function generatePDFReport(period: string, data: ReportData) {
     y += PDF_SECTION_GAP;
   }
 
+  // ── Activity Logs — separated by module ──────────────────────────────────
   if (data.logs.length > 0) {
-    doc.setFontSize(PDF_FONT_SIZE_SUBTITLE);
-    doc.setTextColor('#1e293b');
-    doc.text('Activity Logs & Daily Details', PDF_MARGIN_HORIZONTAL, y + 10);
-    y += 20;
+    y = drawSectionTitle(doc, 'Activity Logs & Daily Details', y);
 
-    autoTable(doc, {
-      startY: y,
-      head: [['Date', 'Time', 'Category', 'Details', 'Notes']],
-      body: data.logs.map(log => {
-        let details = '';
-        let notes = '';
-        if (log.log_module === 'nutrition') {
-          details = log.food_meals || '';
-          notes = log.food_notes || '';
-        }
-        if (log.log_module === 'training') {
-          details = log.trained ? `${log.train_type} (${log.train_duration}m)` : 'Rest Day';
-          notes = log.train_notes || '';
-        }
-        if (log.log_module === 'study') {
-          details = `${log.study_topic} (${log.study_time}m)`;
-          notes = log.study_notes || '';
-        }
-        if (log.log_module === 'mind') {
-          const moodText = log.mood ? MOOD_LABELS[log.mood as Mood] || 'Unknown' : 'Unknown';
-          details = `Mood: ${moodText} | Stress: ${log.stress_level}/10`;
-          notes = log.mind_notes || '';
-        }
+    for (const mod of MODULE_CONFIG) {
+      const moduleLogs = data.logs
+        .filter(log => log.log_module === mod.key)
+        .sort((a, b) => a.date.localeCompare(b.date));
 
-        const timeStr = log.created_at 
-          ? new Date(log.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) 
-          : '-';
+      if (moduleLogs.length === 0) continue;
 
-        return [
-          new Date(log.date + 'T12:00:00').toLocaleDateString(),
-          timeStr,
-          log.log_module.charAt(0).toUpperCase() + log.log_module.slice(1),
-          details,
-          notes,
-        ];
-      }),
-      theme: 'striped',
-      headStyles: { fillColor: '#f59e0b', textColor: '#ffffff', fontStyle: 'bold' },
-      styles: { fontSize: PDF_FONT_SIZE_TABLE_DETAIL, cellPadding: 6, overflow: 'linebreak' },
-      columnStyles: {
-        0: { cellWidth: 65 }, // Date
-        1: { cellWidth: 50 }, // Time
-        2: { cellWidth: 65 }, // Category
-        3: { cellWidth: 140 }, // Details
-        4: { cellWidth: 'auto' }, // Notes
-      },
-      margin: { left: PDF_MARGIN_HORIZONTAL, right: PDF_MARGIN_HORIZONTAL },
-    });
+      y = drawSubsectionTitle(doc, mod.label, y);
+
+      let head: string[][];
+      let body: string[][];
+
+      if (mod.key === 'nutrition') {
+        head = [['Date', 'Meals', 'Notes']];
+        body = moduleLogs.map(log => [
+          formatDate(log.date),
+          log.food_meals || '-',
+          log.food_notes || '-',
+        ]);
+      } else if (mod.key === 'training') {
+        head = [['Date', 'Trained', 'Type', 'Duration', 'Notes']];
+        body = moduleLogs.map(log => [
+          formatDate(log.date),
+          log.trained ? '✔' : 'X',
+          log.train_type || '-',
+          log.train_duration ? `${log.train_duration} min` : '-',
+          log.train_notes || '-',
+        ]);
+      } else if (mod.key === 'study') {
+        head = [['Date', 'Topic', 'Duration', 'Notes']];
+        body = moduleLogs.map(log => [
+          formatDate(log.date),
+          log.study_topic || '-',
+          log.study_time ? `${log.study_time} min` : '-',
+          log.study_notes || '-',
+        ]);
+      } else {
+        head = [['Date', 'Mood', 'Stress', 'Notes']];
+        body = moduleLogs.map(log => [
+          formatDate(log.date),
+          log.mood ? (MOOD_LABELS[log.mood as Mood] || 'Unknown') : '-',
+          log.stress_level != null ? `${log.stress_level}/10` : '-',
+          log.mind_notes || '-',
+        ]);
+      }
+
+      autoTable(doc, {
+        startY: y,
+        head,
+        body,
+        theme: 'grid',
+        headStyles: { fillColor: mod.color, textColor: '#ffffff', fontStyle: 'bold' },
+        styles: { fontSize: PDF_FONT_SIZE_TABLE_DETAIL, cellPadding: 6, overflow: 'linebreak' },
+        alternateRowStyles: { fillColor: '#f8fafc' },
+        margin: { left: PDF_MARGIN_HORIZONTAL, right: PDF_MARGIN_HORIZONTAL },
+      });
+      // @ts-ignore
+      y = doc.lastAutoTable.finalY + PDF_SUBSECTION_GAP;
+    }
+
+    y += PDF_SECTION_GAP - PDF_SUBSECTION_GAP;
   } else {
     doc.setFontSize(PDF_FONT_SIZE_SUBTITLE);
     doc.setTextColor('#94a3b8');
     doc.text('No activity logs recorded for this period.', PDF_MARGIN_HORIZONTAL, y);
+    y += PDF_SECTION_GAP;
   }
 
+  // ── Goals & Progress ─────────────────────────────────────────────────────
+  if (data.goals.length > 0) {
+    y = drawSectionTitle(doc, 'Goals & Progress', y);
+
+    autoTable(doc, {
+      startY: y,
+      head: [['Goal', 'Life Area', 'Status', 'Progress', 'Due Date']],
+      body: data.goals.map(goal => [
+        goal.title,
+        LIFE_AREA_LABELS[goal.life_area] || goal.life_area,
+        GOAL_STATUS_LABELS[goal.status] || goal.status,
+        `${goal.progress}%`,
+        formatDate(goal.due_date),
+      ]),
+      theme: 'grid',
+      headStyles: { fillColor: PDF_COLOR_SECTION_GOALS, textColor: '#ffffff', fontStyle: 'bold' },
+      styles: { fontSize: PDF_FONT_SIZE_TABLE_DETAIL, cellPadding: 6, overflow: 'linebreak' },
+      columnStyles: {
+        0: { cellWidth: 'auto' },
+        1: { cellWidth: 80 },
+        2: { cellWidth: 70 },
+        3: { cellWidth: 60 },
+        4: { cellWidth: 70 },
+      },
+      alternateRowStyles: { fillColor: '#f8fafc' },
+      margin: { left: PDF_MARGIN_HORIZONTAL, right: PDF_MARGIN_HORIZONTAL },
+    });
+    // @ts-ignore
+    y = doc.lastAutoTable.finalY + PDF_SUBSECTION_GAP;
+
+    // Milestones per goal
+    for (const goal of data.goals) {
+      if (goal.milestones.length === 0) continue;
+
+      const sorted = [...goal.milestones].sort(
+        (a, b) => (a.order_index ?? 0) - (b.order_index ?? 0),
+      );
+      const completedCount = sorted.filter(m => m.completed).length;
+
+      y = drawSubsectionTitle(
+        doc,
+        `${goal.title} — Milestones (${completedCount}/${sorted.length} completed)`,
+        y,
+      );
+
+      autoTable(doc, {
+        startY: y,
+        head: [['Milestone', 'Due Date', 'Status']],
+        body: sorted.map(m => [
+          m.title,
+          m.due_date ? formatDate(m.due_date) : '-',
+          m.completed ? '✔' : '-',
+        ]),
+        theme: 'striped',
+        headStyles: { fillColor: PDF_COLOR_SECTION_MILESTONES, textColor: '#ffffff', fontStyle: 'bold' },
+        styles: { fontSize: PDF_FONT_SIZE_TABLE_DETAIL, cellPadding: 5, overflow: 'linebreak' },
+        columnStyles: {
+          0: { cellWidth: 'auto' },
+          1: { cellWidth: 80 },
+          2: { cellWidth: 70 },
+        },
+        alternateRowStyles: { fillColor: '#f8fafc' },
+        margin: { left: PDF_MARGIN_HORIZONTAL + PDF_SUBSECTION_GAP, right: PDF_MARGIN_HORIZONTAL },
+      });
+      // @ts-ignore
+      y = doc.lastAutoTable.finalY + PDF_SUBSECTION_GAP;
+    }
+  } else {
+    doc.setFontSize(PDF_FONT_SIZE_TABLE_MAIN);
+    doc.setTextColor('#94a3b8');
+    doc.text('No goals recorded.', PDF_MARGIN_HORIZONTAL, y);
+  }
+
+  // ── Page numbers ─────────────────────────────────────────────────────────
   const pageCount = (doc as any).internal.getNumberOfPages();
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
