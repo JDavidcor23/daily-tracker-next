@@ -20,7 +20,9 @@ export interface DailyLog {
   // Mental/Emotional
   mood: Mood | '';
   stress_level: number;
-  mind_notes: string;
+  mind_title: string;
+  mind_description: string;
+  mind_notes: string; // Keep for backward compatibility or remove later
   // Meta
   created_at?: string;
 }
@@ -117,6 +119,8 @@ export const DEFAULT_LOG: Omit<DailyLog, 'id' | 'created_at'> = {
   study_notes: '',
   mood: '',
   stress_level: 5,
+  mind_title: '',
+  mind_description: '',
   mind_notes: '',
 };
 

@@ -35,6 +35,8 @@ Fetches log entries, joining all module tables and returning a flat `DailyLog` o
       "study_notes": "...",
       "mood": "...",
       "stress_level": 5,
+      "mind_title": "...",
+      "mind_description": "...",
       "mind_notes": "..."
     }
   ]
@@ -68,7 +70,7 @@ Writes to `log_training`.
 Writes to `log_study`.
 
 ### `POST /api/mind`
-**Body:** `{ "mood": "...", "stress_level": 5, "mind_notes": "...", "date": "YYYY-MM-DD" }`
+**Body:** `{ "mood": "...", "stress_level": 5, "mind_title": "...", "mind_description": "...", "date": "YYYY-MM-DD" }`
 Writes to `log_mind`.
 
 ---

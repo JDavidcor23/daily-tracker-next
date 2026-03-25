@@ -4,7 +4,7 @@ import supabase from '@/lib/supabase';
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { mood, stress_level, mind_notes, date } = body;
+    const { mood, stress_level, mind_title, mind_description, date } = body;
 
     const entryDate = date || new Date().toISOString().split('T')[0];
 
@@ -20,7 +20,7 @@ export async function POST(request: Request) {
 
     const { data: moduleData, error } = await supabase
       .from('log_mind')
-      .insert([{ entry_id: entry.id, mood, stress_level: stress_level || 5, mind_notes }])
+      .insert([{ entry_id: entry.id, mood, stress_level: stress_level || 5, mind_title, mind_description }])
       .select()
       .single();
 
@@ -37,7 +37,8 @@ export async function POST(request: Request) {
         created_at: entry.created_at,
         mood: moduleData.mood,
         stress_level: moduleData.stress_level,
-        mind_notes: moduleData.mind_notes,
+        mind_title: moduleData.mind_title,
+        mind_description: moduleData.mind_description,
       }],
     });
   } catch (error: any) {

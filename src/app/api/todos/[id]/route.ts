@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import supabase from '@/lib/supabase';
 
-const INSTANCE_FIELDS = new Set(['completed', 'completed_at']);
+const INSTANCE_FIELDS = new Set(['completed', 'completed_at', 'date', 'scheduled_date']);
 
 const TODO_SELECT = `
   id, text, description, priority, due_date, is_repetitive, frequency, active, created_at,
@@ -46,7 +46,11 @@ export async function PATCH(
 
     for (const [key, val] of Object.entries(allUpdates)) {
       if (INSTANCE_FIELDS.has(key)) {
-        instanceUpdates[key] = val;
+        if (key === 'date') {
+          instanceUpdates['scheduled_date'] = val;
+        } else {
+          instanceUpdates[key] = val;
+        }
       } else {
         templateUpdates[key] = val;
       }

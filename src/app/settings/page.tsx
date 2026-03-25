@@ -38,7 +38,9 @@ CREATE TABLE IF NOT EXISTS log_mind (
   entry_id uuid PRIMARY KEY REFERENCES daily_log_entries(id) ON DELETE CASCADE,
   mood text,
   stress_level integer DEFAULT 5,
-  mind_notes text
+  mind_notes text,
+  mind_title text,
+  mind_description text
 );
 
 -- Step 1c: Todo templates (what the task is)

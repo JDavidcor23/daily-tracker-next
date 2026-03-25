@@ -6,7 +6,7 @@ const LOG_SELECT = `
   log_nutrition(food_meals, food_notes),
   log_training(trained, train_type, train_duration, train_notes),
   log_study(study_topic, study_time, study_notes),
-  log_mind(mood, stress_level, mind_notes)
+  log_mind(mood, stress_level, mind_title, mind_description, mind_notes)
 `.trim();
 
 function flattenEntry(entry: any) {
@@ -26,6 +26,8 @@ function flattenEntry(entry: any) {
     study_notes: entry.log_study?.study_notes || '',
     mood: entry.log_mind?.mood || '',
     stress_level: entry.log_mind?.stress_level ?? 5,
+    mind_title: entry.log_mind?.mind_title || '',
+    mind_description: entry.log_mind?.mind_description || '',
     mind_notes: entry.log_mind?.mind_notes || '',
   };
 }

@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import { DailyLog, Mood, MOODS } from '@/lib/types';
-import {
+import
+{
   STRESS_DEFAULT,
   STRESS_MIN,
   STRESS_MAX,
@@ -10,34 +11,43 @@ import {
   STRESS_MEDIUM_THRESHOLD,
 } from '@/lib/constants';
 
-interface Props {
-  onLog: (data: Partial<DailyLog>) => void;
+interface Props
+{
+  onLog: ( data: Partial<DailyLog> ) => void;
 }
 
-export default function MindModule({ onLog }: Props) {
-  const [mood, setMood] = useState<Mood | ''>('');
-  const [stress, setStress] = useState(STRESS_DEFAULT);
-  const [notes, setNotes] = useState('');
+export default function MindModule ( { onLog }: Props )
+{
+  const [ mood, setMood ] = useState<Mood | ''>( '' );
+  const [ stress, setStress ] = useState( STRESS_DEFAULT );
+  const [ notes, setNotes ] = useState( '' );
+  const [ title, setTitle ] = useState( '' );
+  const [ description, setDescription ] = useState( '' );
 
-  const handleRange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setStress(Number(e.target.value));
+  const handleRange = ( e: React.ChangeEvent<HTMLInputElement> ) =>
+  {
+    setStress( Number( e.target.value ) );
   };
 
-  const handleLog = () => {
-    if (!mood) return;
-    onLog({ mood, stress_level: stress, mind_notes: notes });
-    setMood('');
-    setStress(STRESS_DEFAULT);
-    setNotes('');
+  const handleLog = () =>
+  {
+    if ( !mood ) return;
+    onLog( { mood, stress_level: stress, mind_notes: notes, mind_title: title, mind_description: description } );
+    setMood( '' );
+    setStress( STRESS_DEFAULT );
+    setNotes( '' );
+    setTitle( '' );
+    setDescription( '' );
   };
 
-  const stressColor = (level: number) => {
-    if (level <= STRESS_LOW_THRESHOLD) return 'text-emerald-600';
-    if (level <= STRESS_MEDIUM_THRESHOLD) return 'text-amber-500';
+  const stressColor = ( level: number ) =>
+  {
+    if ( level <= STRESS_LOW_THRESHOLD ) return 'text-emerald-600';
+    if ( level <= STRESS_MEDIUM_THRESHOLD ) return 'text-amber-500';
     return 'text-rose-500';
   };
 
-  const rangeProgress = `${((stress - STRESS_MIN) / (STRESS_MAX - STRESS_MIN)) * 100}%`;
+  const rangeProgress = `${ ( ( stress - STRESS_MIN ) / ( STRESS_MAX - STRESS_MIN ) ) * 100 }%`;
 
   return (
     <div className="card module-section font-sans">
@@ -52,59 +62,65 @@ export default function MindModule({ onLog }: Props) {
       <div>
         <label className="label">Current Mood</label>
         <div className="flex justify-between gap-1.5 mt-1">
-          {MOODS.map((emoji) => (
+          { MOODS.map( ( emoji ) => (
             <button
-              key={emoji}
+              key={ emoji }
               type="button"
-              onClick={() => setMood(emoji)}
-              className={`flex-1 flex flex-col items-center py-2 rounded-xl text-2xl transition-all border-2
-                ${mood === emoji
+              onClick={ () => setMood( emoji ) }
+              className={ `flex-1 flex flex-col items-center py-2 rounded-xl text-2xl transition-all border-2
+                ${ mood === emoji
                   ? 'border-brand-400 bg-brand-50 dark:bg-brand-900/40 scale-105 shadow-sm'
                   : 'border-transparent bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800'
-                }`}
+                }` }
             >
-              <span className="drop-shadow-sm">{emoji}</span>
+              <span className="drop-shadow-sm">{ emoji }</span>
             </button>
-          ))}
+          ) ) }
         </div>
       </div>
 
       <div>
         <div className="flex items-center justify-between mb-2">
           <label className="label">Stress Level</label>
-          <span className={`text-sm font-bold ${stressColor(stress)}`}>
-            {stress}/{STRESS_MAX}
+          <span className={ `text-sm font-bold ${ stressColor( stress ) }` }>
+            { stress }/{ STRESS_MAX }
           </span>
         </div>
         <input
           type="range"
-          min={STRESS_MIN}
-          max={STRESS_MAX}
-          step={1}
-          value={stress}
-          onChange={handleRange}
+          min={ STRESS_MIN }
+          max={ STRESS_MAX }
+          step={ 1 }
+          value={ stress }
+          onChange={ handleRange }
           className="w-full accent-brand-500"
-          style={{ '--range-progress': rangeProgress } as React.CSSProperties}
+          style={ { '--range-progress': rangeProgress } as React.CSSProperties }
         />
       </div>
 
       <div className="flex gap-2">
         <div className="flex-1">
+          <input
+            className="input-field mb-2"
+            placeholder="Título corto..."
+            value={ title }
+            onChange={ ( e ) => setTitle( e.target.value ) }
+          />
           <textarea
-            className="input-field resize-none h-11 py-2.5"
-            placeholder="Journal snippet..."
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
+            className="input-field resize-none h-24"
+            placeholder="¿Por qué te sientes así?..."
+            value={ description }
+            onChange={ ( e ) => setDescription( e.target.value ) }
           />
         </div>
-        <button
-          onClick={handleLog}
-          disabled={!mood}
-          className="btn-primary px-4"
-        >
-          Log
-        </button>
       </div>
+      <button
+        onClick={ handleLog }
+        disabled={ !mood }
+        className="btn-primary px-4"
+      >
+        Log
+      </button>
     </div>
   );
 }
