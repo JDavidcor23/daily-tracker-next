@@ -10,25 +10,30 @@ const LOG_SELECT = `
 `.trim();
 
 function flattenEntry(entry: any) {
+  const nutrition = Array.isArray(entry.log_nutrition) ? entry.log_nutrition[0] : entry.log_nutrition;
+  const training = Array.isArray(entry.log_training) ? entry.log_training[0] : entry.log_training;
+  const study = Array.isArray(entry.log_study) ? entry.log_study[0] : entry.log_study;
+  const mind = Array.isArray(entry.log_mind) ? entry.log_mind[0] : entry.log_mind;
+
   return {
     id: entry.id,
     date: entry.date,
     log_module: entry.log_module,
     created_at: entry.created_at,
-    food_meals: entry.log_nutrition?.food_meals || '',
-    food_notes: entry.log_nutrition?.food_notes || '',
-    trained: entry.log_training?.trained ?? false,
-    train_type: entry.log_training?.train_type || '',
-    train_duration: entry.log_training?.train_duration || '',
-    train_notes: entry.log_training?.train_notes || '',
-    study_topic: entry.log_study?.study_topic || '',
-    study_time: entry.log_study?.study_time || '',
-    study_notes: entry.log_study?.study_notes || '',
-    mood: entry.log_mind?.mood || '',
-    stress_level: entry.log_mind?.stress_level ?? 5,
-    mind_title: entry.log_mind?.mind_title || '',
-    mind_description: entry.log_mind?.mind_description || '',
-    mind_notes: entry.log_mind?.mind_notes || '',
+    food_meals: nutrition?.food_meals || '',
+    food_notes: nutrition?.food_notes || '',
+    trained: training?.trained ?? false,
+    train_type: training?.train_type || '',
+    train_duration: training?.train_duration || '',
+    train_notes: training?.train_notes || '',
+    study_topic: study?.study_topic || '',
+    study_time: study?.study_time || '',
+    study_notes: study?.study_notes || '',
+    mood: mind?.mood || '',
+    stress_level: mind?.stress_level ?? 5,
+    mind_title: mind?.mind_title || '',
+    mind_description: mind?.mind_description || '',
+    mind_notes: mind?.mind_notes || '',
   };
 }
 

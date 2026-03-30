@@ -70,6 +70,13 @@ const MODULE_CONFIG: Array<{
   { key: 'mind',      label: 'Mental Health',   color: PDF_COLOR_SECTION_MIND      },
 ];
 
+const cleanPDFStr = (str: string) => {
+  if (!str) return '';
+  // Basic removal of emojis/special characters for standard jsPDF fonts
+  // replacing them with a space to avoid character corruption like Ø=Þ
+  return str.replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|\uD83E[\uDC00-\uDFFF]/g, '');
+};
+
 function formatDate(dateStr: string) {
   return new Date(dateStr + 'T12:00:00').toLocaleDateString();
 }
@@ -235,12 +242,25 @@ export function generatePDFReport(period: string, data: ReportData) {
         ]);
       } else {
         head = [['Date', 'Mood', 'Stress', 'Notes']];
-        body = moduleLogs.map(log => [
-          formatDate(log.date),
-          log.mood ? (MOOD_LABELS[log.mood as Mood] || 'Unknown') : '-',
-          log.stress_level != null ? `${log.stress_level}/10` : '-',
-          log.mind_notes || '-',
-        ]);
+        body = moduleLogs.map(log => {
+          const title = log.mind_title ? cleanPDFStr(log.mind_title.trim()) : '';
+          const desc = log.mind_description ? cleanPDFStr(log.mind_description.trim()) : '';
+          const notes = log.mind_notes ? cleanPDFStr(log.mind_notes.trim()) : '';
+          
+          const parts = [];
+          if (title) parts.push(`[${title.toUpperCase()}]`);
+          if (desc) parts.push(desc);
+          if (notes) parts.push(notes);
+
+          const finalNotes = parts.filter(Boolean).join('\n');
+
+          return [
+            formatDate(log.date),
+            log.mood ? (MOOD_LABELS[log.mood as Mood] || cleanPDFStr(log.mood)) : '-',
+            log.stress_level != null ? `${log.stress_level}/10` : '-',
+            finalNotes || '-',
+          ];
+        });
       }
 
       autoTable(doc, {

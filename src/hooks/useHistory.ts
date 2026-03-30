@@ -63,7 +63,9 @@ export function useHistory() {
       (log.train_notes || '').toLowerCase().includes(searchLower) ||
       (log.study_topic || '').toLowerCase().includes(searchLower) ||
       (log.study_notes || '').toLowerCase().includes(searchLower) ||
-      (log.mind_notes || '').toLowerCase().includes(searchLower)
+      (log.mind_notes || '').toLowerCase().includes(searchLower) ||
+      (log.mind_title || '').toLowerCase().includes(searchLower) ||
+      (log.mind_description || '').toLowerCase().includes(searchLower)
     );
   });
 
